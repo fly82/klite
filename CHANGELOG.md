@@ -3,6 +3,7 @@
 * server: `start()` method now accepts socketBacklog parameter that can be fine-tuned if you have 1000s of parallel connections
 * server/jobs: ensure that JobRunner logs with the same instanceId as the Server (they use the same RequestIdGenerator now)
 * server: `metrics()` can be provided with custom access annotations and includes `activeRequests` metric now
+* server: `metrics()` can output Prometheus/OpenMetrics format if `Accept` header requests it
 * jdbc: `metrics()` for PooledDataSource connection pool include `"count"` and `"dropped"` metrics now
 * jdbc: changesets now support providing multiple comma-separated contexts
 * jdbc: PooledDataSource now logs number of connections in the pool when dropping previous ones

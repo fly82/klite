@@ -1,6 +1,7 @@
 package klite
 
 import klite.RequestMethod.GET
+import java.io.OutputStream
 import java.time.Instant
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ForkJoinPool
@@ -33,8 +34,34 @@ fun Router.metrics(path: String = "/metrics", annotations: List<Annotation> = em
     }
   }
 
-  // TODO: add Prometheus-style output formatter
+  use<OpenMetricsRenderer>()
   add(Route(GET, pathParamRegexer.from(path), annotations) {
     Metrics.data
   })
+}
+
+class OpenMetricsRenderer(override val contentType: String = "application/openmetrics-text"): BodyRenderer {
+  override fun render(output: OutputStream, value: Any?) {
+    val data = value as? Map<*, *> ?: return
+    render(output, "", data)
+    output.writeln("# EOF")
+  }
+
+  fun render(out: OutputStream, prefix: String, data: Map<*, *>) {
+    data.forEach { (k, v) ->
+      val snake = SnakeCase.to(k.toString())
+      val key = if (prefix.isEmpty()) snake else "${prefix}_$snake"
+      when (v) {
+        is Map<*, *> -> render(out, key, v)
+        is Number -> {
+          out.writeln("# TYPE $key " + if (v is Int || v is Long) "counter" else "gauge")
+          out.writeln("$key $v")
+        }
+        else -> {
+          out.writeln("# TYPE $key info")
+          out.writeln("$key{value=\"$v\"} 1")
+        }
+      }
+    }
+  }
 }
