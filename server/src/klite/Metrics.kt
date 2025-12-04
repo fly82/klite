@@ -1,5 +1,6 @@
 package klite
 
+import klite.RequestMethod.GET
 import java.time.Instant
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ForkJoinPool
@@ -18,7 +19,7 @@ object Metrics {
 }
 
 context(Server)
-fun Router.metrics(path: String = "/metrics") {
+fun Router.metrics(path: String = "/metrics", annotations: List<Annotation> = emptyList()) {
   (workerPool as? ForkJoinPool)?.let {
     Metrics.register("workerPool") {
       mapOf("active" to it.activeThreadCount, "size" to it.poolSize, "max" to it.parallelism)
@@ -32,7 +33,7 @@ fun Router.metrics(path: String = "/metrics") {
     }
   }
 
-  get(path) {
+  add(Route(GET, pathParamRegexer.from(path), annotations) {
     Metrics.data
-  }
+  })
 }
