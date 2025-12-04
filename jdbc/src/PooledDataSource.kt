@@ -31,13 +31,14 @@ class PooledDataSource(
 ): DataSource by db, AutoCloseable {
   private val log = logger()
   private val counter = AtomicInteger()
+  private val dropped = AtomicInteger()
   internal val size = AtomicInteger()
   internal val available = ArrayBlockingQueue<PooledConnection>(maxSize)
   internal val used = ConcurrentHashMap<PooledConnection, Used>(maxSize)
 
   init {
     Metrics.register("dbPool") {
-      mapOf("max" to maxSize, "size" to size.get(), "available" to available.size, "used" to used.size)
+      mapOf("max" to maxSize, "size" to size.get(), "available" to available.size, "used" to used.size, "count" to counter.get(), "dropped" to dropped.get())
     }
   }
 
@@ -52,6 +53,7 @@ class PooledDataSource(
           if (runCatching { conn.isClosed }.getOrNull() == true) {
             log.warn("Dropping closed $conn, used for ${usedForMs / 1000}s, acquired by ${used.threadName}")
             size.decrementAndGet()
+            dropped.incrementAndGet()
             true
           } else {
             if (usedForMs >= it.inWholeMilliseconds)
@@ -82,6 +84,7 @@ class PooledDataSource(
       try { conn.checkBySetApplicationName() } catch (e: Exception) {
         val newSize = size.decrementAndGet()
         log.warn("Dropping failed $conn, age ${conn.ageMs / 1000}s, available: ${available.size}/$newSize: $e")
+        dropped.incrementAndGet()
         conn = null
       }
     } while (conn == null)
