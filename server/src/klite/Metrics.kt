@@ -19,6 +19,13 @@ object Metrics {
   val data: Map<String, Any?> get() = resolvers.mapValues { it.value() }
 }
 
+fun Server.metrics(path: String = "/metrics", befores: Router.() -> Unit = {}) {
+  context(path) {
+    befores()
+    metrics("")
+  }
+}
+
 context(Server)
 fun Router.metrics(path: String = "/metrics", annotations: List<Annotation> = emptyList()) {
   (workerPool as? ForkJoinPool)?.let {

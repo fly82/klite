@@ -30,6 +30,8 @@ fun sampleServer(port: Int = Config.port): Server {
 
     register(httpClient())
 
+    metrics()
+
     before<AdminChecker>()
     after { ex, err -> ex.header("X-Error", err?.message ?: "none") }
 
@@ -66,7 +68,6 @@ fun sampleServer(port: Int = Config.port): Server {
       useHashCodeAsETag() // automatically send 304 NotModified if request generates the same response as before
       annotated<APIRoutes>() // read routes from an annotated class - such classes are easier to unit-test
       annotated<SSERoutes>("/sse") // Server-Side Events sample
-      metrics()
       openApi(swaggerUIConfig = mapOf("syntaxHighlight" to true))
     }
 
