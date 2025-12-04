@@ -43,7 +43,8 @@ class Server(
   private val log = logger()
 
   init {
-    currentThread().name += "/" + requestIdGenerator.prefix
+    registry.register(requestIdGenerator)
+    currentThread().run { name = requestIdGenerator.prefix + "/" + name }
     val kliteVersion = javaClass.`package`.implementationVersion ?: "dev"
     log.info("klite ${kliteVersion}, config " + Config.active)
   }

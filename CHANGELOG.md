@@ -1,6 +1,7 @@
 # Unreleased
 * server: HttpServer now accepts connections inside of workerPool, not single thread - for better scalability under very heavy load
 * server: start() method now accepts socketBacklog parameter that can be fine-tuned if you have 1000s of parallel connections
+* server/jobs: ensure that JobRunner logs with the same instanceId as the Server (they use the same RequestIdGenerator now)
 * jdbc: changesets now support providing multiple comma-separated contexts
 * jdbc: PooledDataSource now logs number of connections in the pool when dropping previous ones
 
