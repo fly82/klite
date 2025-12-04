@@ -383,6 +383,33 @@ Then no extra validation code is needed in route handlers, which is easy to forg
 
 `JsonMapper.trimToNull` is enabled by default, so you get more clean data into your objects, and won't get empty strings into required (non-null) fields — input Strings will be trimmed and converted to null if empty.
 
+## Metrics
+
+You can add the built-in `metrics()` handler to any context to expose important health metrics there that your monitoring tools can read and log.
+
+Use the `Metrics.register()` function to register custom metrics that you want to track.
+
+## Swagger / OpenAPI
+
+Add the optional module [openapi](openapi) to your `build.gradle.kts`:
+
+```kts
+implementation(klite("openapi"))
+```
+
+And then add `openApi()` handler to your API context:
+
+```kotlin
+context("/api") {
+  // your routes go first
+  openApi()
+}
+```
+
+This will expose `/api/openapi` endpoint with the OpenAPI 3.0 spec for all routes in the context, viewable with Swagger UI.
+
+Use Swagger annotations to customize the generated spec or hide any routes with `@Hidden`.
+
 ## Login/access/sessions
 
 To enable session support, pass a `SessionStore` implementation to Server's constructor:
