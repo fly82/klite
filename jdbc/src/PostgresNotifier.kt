@@ -35,7 +35,7 @@ class PostgresNotifier<K: Any>(vararg channels: K): Extension {
 }
 
 /** Send Postgres notification to the specified channel. Delivered after commit */
-fun DataSource.notify(channel: String, payload: String = "") = withStatement("notify $channel, ?") {
+fun DataSource.notify(channel: String, payload: String = "") = withStatement("select pg_notify(?, ?)") {
   setAll(sequenceOf(channel, payload))
   executeQuery().run { next() }
 }
@@ -49,7 +49,7 @@ fun DataSource.consumeNotifications(channels: Iterable<String>, timeout: Duratio
 }
 
 fun Connection.listen(channels: Iterable<String>) = createStatement().use { s ->
-  channels.forEach { s.execute("listen $it") }
+  channels.forEach { s.execute("listen \"$it\"") }
 }
 
 fun Connection.pgNotifications(timeout: Duration): Array<PGNotification> =
