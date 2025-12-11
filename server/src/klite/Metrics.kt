@@ -27,7 +27,7 @@ fun Server.metrics(path: String = "/metrics", befores: Router.() -> Unit = {}) {
 }
 
 context(Server)
-fun Router.metrics(path: String = "/metrics", annotations: List<Annotation> = emptyList()) {
+fun Router.metrics(path: String = "/metrics", keyPrefix: String = "", annotations: List<Annotation> = emptyList()) {
   (workerPool as? ForkJoinPool)?.let {
     Metrics.register("workerPool") {
       mapOf("active" to it.activeThreadCount, "size" to it.poolSize, "max" to it.parallelism)
@@ -41,16 +41,19 @@ fun Router.metrics(path: String = "/metrics", annotations: List<Annotation> = em
     }
   }
 
-  renderers.addFirst(OpenMetricsRenderer())
+  renderers.addFirst(OpenMetricsRenderer(keyPrefix = keyPrefix))
   add(Route(GET, pathParamRegexer.from(path), annotations) {
     Metrics.data
   })
 }
 
-class OpenMetricsRenderer(override val contentType: String = "application/openmetrics-text"): BodyRenderer {
+class OpenMetricsRenderer(
+  override val contentType: String = "application/openmetrics-text",
+  private val keyPrefix: String = "",
+): BodyRenderer {
   override fun render(output: OutputStream, value: Any?) {
     val data = value as? Map<*, *> ?: return
-    render(output, "", data)
+    render(output, keyPrefix, data)
     output.writeln("# EOF")
   }
 
