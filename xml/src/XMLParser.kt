@@ -6,6 +6,7 @@ import klite.publicProperties
 import org.xml.sax.Attributes
 import org.xml.sax.helpers.DefaultHandler
 import java.io.InputStream
+import javax.xml.XMLConstants
 import javax.xml.parsers.SAXParserFactory
 import javax.xml.stream.XMLEventReader
 import javax.xml.stream.XMLInputFactory
@@ -24,7 +25,11 @@ annotation class XmlPath(
 
 @Suppress("UNCHECKED_CAST")
 class XMLParser(
-  private val factory: SAXParserFactory = SAXParserFactory.newInstance().apply { isNamespaceAware = true }
+  private val factory: SAXParserFactory = SAXParserFactory.newInstance().apply {
+    isNamespaceAware = true
+    setFeature("http://apache.org/xml/features/disallow-doctype-decl", true)
+    setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true)
+  }
 ) {
   inline fun <reified T: Any> parse(xml: InputStream): T = parse(xml, T::class)
 
