@@ -17,23 +17,24 @@ class MultipartRenderer(
     value.forEach { (k, v) ->
       if (v == null) return@forEach
       out.write(boundary)
-      out.writeln()
+      out.writecrlf()
       out.write("Content-Disposition: form-data; name=\"$k\"")
       when (v) {
         is FileUpload -> {
-          out.write("; filename=\"${v.fileName}\"\r\n")
-          out.write("Content-Type: ${MimeTypes.withCharset(v.contentType ?: MimeTypes.unknown)}\r\n\r\n")
+          out.writecrlf("; filename=\"${v.fileName}\"")
+          out.writecrlf("Content-Type: ${MimeTypes.withCharset(v.contentType ?: MimeTypes.unknown)}")
+          out.writecrlf()
           out.flush()
           v.stream.use { it.copyTo(out) }
         }
         else -> {
-          out.writeln(); out.writeln()
+          out.writecrlf(); out.writecrlf()
           if (v is ByteArray) out.write(v) else out.write(v.toString())
         }
       }
-      out.writeln()
+      out.writecrlf()
     }
-    out.write(boundary); out.write("--"); out.writeln()
+    out.write(boundary); out.write("--"); out.writecrlf()
     out.flush()
   }
 

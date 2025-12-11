@@ -41,13 +41,13 @@ fun Router.metrics(path: String = "/metrics", annotations: List<Annotation> = em
     }
   }
 
-  use<OpenMetricsRenderer>()
+  renderers.addFirst(OpenMetricsRenderer())
   add(Route(GET, pathParamRegexer.from(path), annotations) {
     Metrics.data
   })
 }
 
-class OpenMetricsRenderer(override val contentType: String = "application/openmetrics-text; version=1.0.0"): BodyRenderer {
+class OpenMetricsRenderer(override val contentType: String = "application/openmetrics-text"): BodyRenderer {
   override fun render(output: OutputStream, value: Any?) {
     val data = value as? Map<*, *> ?: return
     render(output, "", data)
@@ -60,14 +60,8 @@ class OpenMetricsRenderer(override val contentType: String = "application/openme
       val key = if (prefix.isEmpty()) snake else "${prefix}_$snake"
       when (v) {
         is Map<*, *> -> render(out, key, v)
-        is Number -> {
-          out.writeln("# TYPE $key " + if (v is Int || v is Long) "counter" else "gauge")
-          out.writeln("$key $v")
-        }
-        else -> {
-          out.writeln("# TYPE $key info")
-          out.writeln("$key{value=\"$v\"} 1")
-        }
+        is Number -> out.writeln("$key $v")
+        else -> out.writeln("$key{value=\"$v\"} 1")
       }
     }
   }
