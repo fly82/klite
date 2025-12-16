@@ -1,3 +1,6 @@
+# Unreleased
+* openapi: fix detection of default (undefined) schema implementation
+
 # 1.7.2
 * server: HttpServer now accepts connections inside of workerPool, not single thread - for better scalability under very heavy load
 * server: `start()` method now accepts socketBacklog parameter that can be fine-tuned if you have 1000s of parallel connections
