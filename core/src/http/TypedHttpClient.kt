@@ -30,9 +30,10 @@ open class TypedHttpClient(
   private val maxLoggedLen: Int = 1000,
   val http: HttpClient,
   val contentType: String,
-  loggerName: String = StackWalker.getInstance(RETAIN_CLASS_REFERENCE).walk { stack -> stack.skip(2).filter {
-    it.className != TypedHttpClient::class.java.name && it.declaringClass.modifiers and ABSTRACT == 0
-  }.findFirst().get().className }
+  loggerName: String = StackWalker.getInstance(RETAIN_CLASS_REFERENCE).walk { stack -> stack
+    .filter { !TypedHttpClient::class.java.isAssignableFrom(it.declaringClass) && it.declaringClass.modifiers and ABSTRACT == 0 }
+    .findFirst().get().className
+  }
 ) {
   protected var trimToLog: String.() -> String = { if (length <= maxLoggedLen) this else substring(0, maxLoggedLen) + "…" }
   var logger = logger(loggerName).apply {
