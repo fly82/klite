@@ -3,6 +3,7 @@
 * server/openapi: fix analyzing of class-decorated handlers for OpenAPI generation
 * core/openapi: fix initialization of Converter-supported types in OpenAPI generation
 * json: deprecate KeyConverter and ValueConverter in favor of the ones in `klite-core` module
+* server: basicAuth() helper
 
 # 1.7.2
 * server: HttpServer now accepts connections inside of workerPool, not single thread - for better scalability under very heavy load
