@@ -7,14 +7,14 @@ import java.io.IOException
 import java.lang.ProcessBuilder.Redirect.INHERIT
 import java.lang.System.getLogger
 import java.lang.Thread.sleep
+import java.sql.SQLException
 import kotlin.system.measureTimeMillis
-import kotlin.time.Duration
-import kotlin.time.Duration.Companion.seconds
+
+private val log = getLogger("dockerCompose")
 
 fun dockerCompose(command: String): Int = try {
   val fullCommand = Config.optional("DOCKER_COMPOSE", "docker compose") + " " + command
-  getLogger("dockerCompose").info(fullCommand)
-  getLogger("dockerCompose").info(File(".").absolutePath)
+  log.info("$fullCommand in ${File(".").absolutePath}")
   ProcessBuilder(fullCommand.split(' ')).redirectErrorStream(true).redirectOutput(INHERIT).start().waitFor()
 } catch (e: Exception) {
   if (Config.optional("DOCKER_COMPOSE") == null) {
@@ -23,11 +23,24 @@ fun dockerCompose(command: String): Int = try {
   } else throw e
 }
 
-fun startDevDB(service: String = Config.optional("DB_START", "db"), timeout: Duration = Config.optional("DB_START_TIMEOUT_SEC", "2").toInt().seconds) {
+fun dockerComposeUp(service: String, wait: Boolean = true) {
+  if (dockerCompose("up -d${if (wait) " --wait" else ""} $service") != 0) throw IOException("Failed to start $service")
+}
+
+fun startDevDB(service: String = Config.optional("DB_START", "db"), composeWait: Boolean = false) {
   if (service.isEmpty()) return
-  val timeoutMs = timeout.inWholeMilliseconds
-  val ms = measureTimeMillis {
-    if (dockerCompose("up -d${if (timeoutMs == 0L) " --wait" else ""} $service") != 0) throw IOException("Failed to start $service")
-  }
-  if (ms > 500) sleep(timeoutMs) // give the db more time to start listening
+  val ms = measureTimeMillis { dockerComposeUp(service, composeWait) }
+  if (ms > 200) waitForDBToAcceptConnections()
+}
+
+private fun waitForDBToAcceptConnections(numTries: Int = 10, timeoutMs: Long = 500L) {
+  val db = ConfigDataSource()
+  var tries = 1
+  do {
+    try { db.connection.use { return } }
+    catch (e: SQLException) {
+      log.info("Retrying $tries: $e")
+      sleep(timeoutMs)
+    }
+  } while (tries++ < numTries)
 }
