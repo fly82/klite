@@ -23,15 +23,12 @@ import kotlin.reflect.KType
 import kotlin.reflect.full.hasAnnotation
 import kotlin.reflect.full.primaryConstructor
 import kotlin.reflect.jvm.jvmErasure
-import kotlin.time.ExperimentalTime
-import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 import kotlin.uuid.toJavaUuid
 import kotlin.uuid.toKotlinUuid
 
 typealias ToJdbcConverter<T> = (T, Connection?) -> Any
 
-@ExperimentalUuidApi @ExperimentalTime
 object JdbcConverter {
   val nativeTypes: MutableSet<KClass<*>> = mutableSetOf(
     UUID::class, BigDecimal::class, BigInteger::class, LocalDate::class, LocalDateTime::class, LocalTime::class, OffsetDateTime::class

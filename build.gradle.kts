@@ -52,8 +52,12 @@ subprojects {
   tasks.withType<KotlinCompile> {
     compilerOptions {
       jvmTarget.set(JvmTarget.JVM_11)
-      freeCompilerArgs.add("-opt-in=kotlin.ExperimentalStdlibApi")
-      freeCompilerArgs.add("-Xcontext-receivers")
+      freeCompilerArgs.addAll(
+        "-Xcontext-receivers",
+        "-opt-in=kotlin.ExperimentalStdlibApi",
+        "-opt-in=kotlin.uuid.ExperimentalUuidApi",
+        "-opt-in=kotlin.time.ExperimentalTime",
+      )
     }
   }
 
