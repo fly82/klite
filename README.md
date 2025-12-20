@@ -29,6 +29,7 @@ fun main() {
 
 ## Goals
 
+* Follows [The Pure Code Manifesto](https://github.com/keksworks/manifesto)
 * Minimal amount of code
   * Simple to maintain & change
   * Performance is also important, but simplicity is preferred
