@@ -4,7 +4,7 @@
 * core/openapi: fix initialization of Converter-supported types in OpenAPI generation
 * json: deprecate KeyConverter and ValueConverter in favor of the ones in `klite-core` module
 * server: basicAuth() helper
-* jdbc: `startDevDB()` will now retry DB connections for 10 times
+* jdbc: `DockerCompose.startDB()` will now wait until DB actually accepts connections
 
 # 1.7.2
 * server: HttpServer now accepts connections inside of workerPool, not single thread - for better scalability under very heavy load

@@ -19,15 +19,15 @@ fun main() {
 fun sampleServer(port: Int = Config.port): Server {
   Config.useEnvFile()
   return Server(listen = InetSocketAddress(port)).apply {
-    use<JsonBody>() // enables parsing/sending of application/json requests/responses, depending on the Accept header
-
-    if (Config.isDev) startDevDB() // start docker-compose db automatically
+    if (Config.isDev) DockerCompose.startDB() // start docker-compose db automatically
     use(DBMigrator(dropAllOnFailure = Config.isDev)) //  migrate the DB
     use(DBModule(PooledDataSource())) // configure a DataSource
     use<RequestTransactionHandler>() // runs each request in a transaction
 
     metrics()
     assets("/", AssetsHandler(Path.of("public"), useIndexForUnknownPaths = true))
+
+    use<JsonBody>() // enables parsing/sending of application/json requests/responses, depending on the Accept header
 
     register(httpClient())
 
