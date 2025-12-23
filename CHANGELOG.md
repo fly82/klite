@@ -1,5 +1,6 @@
 # Unreleased
 * openapi: fix detection of default (undefined) schema implementation
+* openapi: better support for annotation instances created directly in Kotlin code
 * server/openapi: fix analyzing of class-decorated handlers for OpenAPI generation
 * core/openapi: fix initialization of Converter-supported types in OpenAPI generation
 * json: deprecate KeyConverter and ValueConverter in favor of the ones in `klite-core` module

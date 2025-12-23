@@ -183,4 +183,15 @@ class OpenAPITest {
       ))
     }
   }
+
+  @Test fun `kotlin proxy annotations`() {
+    val annotations = listOf(Info(title = "Mega API", version = "1.x"))
+
+    mockk<HttpExchange>(relaxed = true).apply {
+      every { fullUrl(any()) } returns URI("https://base")
+      every { route } returns Route(GET, "/".toRegex(), annotations) {}
+      val openApi = mockk<Router>(relaxed = true).generateOpenAPI()
+      expect(openApi["info"]).toEqual(mapOf("title" to "Mega API", "version" to "1.x"))
+    }
+  }
 }
