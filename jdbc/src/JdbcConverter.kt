@@ -97,7 +97,8 @@ object JdbcConverter {
     LocalTime::class -> (v as? Time)?.toLocalTime()
     LocalDateTime::class -> (v as? Timestamp)?.toLocalDateTime()
     Decimal::class -> v?.toString()?.d
-    else -> if (target?.annotation<JvmInline>() != null || target == Decimal::class) target.primaryConstructor!!.call(v)
+    else -> if (v == null) null
+    else if (target?.annotation<JvmInline>() != null || target == Decimal::class) target.primaryConstructor!!.call(v)
     else if (v is String && target != null && target != String::class) Converter.from(v, target) else v
   }
 }

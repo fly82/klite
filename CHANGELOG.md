@@ -1,3 +1,6 @@
+# Unreleased
+* jdbc: support for null conversion of @JvmInline classes (e.g. TSID) when reading from DB
+
 # 1.8.1
 * server: map FileNotFoundException and NoSuchFileException to 404 status code by default
 * core: TSIDGenerator.generateValue() can now accept desired timestamp instead of current one
