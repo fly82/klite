@@ -13,7 +13,7 @@ GOOGLE_OAUTH_CLIENT_SECRET=...
 
 ```kotlin
 context("/oauth") {
-  register<OAuthUserProider>(MyUserProvider::class)
+  register<OAuthUserProvider>(MyUserProvider::class)
   register(httpClient())
   register<GoogleOAuthClient>()
   register<MicrosoftOAuthClient>()
@@ -25,3 +25,15 @@ context("/oauth") {
 Then navigate to e.g. `/oauth/google` or `/oauth/google?redirect=/return/path` to start authentication.
 
 If you have only one OAuthClient registered, then you can use just `/oauth`.
+
+```kotlin
+// Your app's user provider can look something like this
+class MyUserProvider(private val userRepository: UserRepository): OAuthUserProvider {
+  override fun provide(profile: UserProfile, tokenResponse: OAuthTokenResponse, exchange: HttpExchange): OAuthUser {
+    val user = userRepository.by(User::email eq profile.email)?.copy(avatarUrl = profile.avatarUrl)
+      ?: User(profile.email, profile.firstName, profile.lastName, profile.avatarUrl, profile.locale)
+    userRepository.save(user)
+    return user
+  }
+}
+```
