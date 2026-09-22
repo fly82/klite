@@ -2,7 +2,9 @@ package klite
 
 import klite.RequestMethod.GET
 import klite.StatusCode.Companion.OK
+import klite.StatusCode.Companion.PayloadTooLarge
 import klite.StatusCode.Companion.TooManyRequests
+import java.io.InputStream
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
@@ -90,46 +92,6 @@ fun RouterConfig.rateLimit(limit: Int, window: Duration) {
 
 private data class RateLimit(var tokens: Double, var lastRefill: Long)
 
-fun RouterConfig.rateLimitWithBan(
-  limit: Int, window: Duration,
-  banAfter: Int = 10, bannedFor: Duration = 1.hours
-) {
-  val limits = Cache<String, RateLimit>(expiration = window * 3, prolongOnAccess = true)
-  val violations = Cache<String, Int>(expiration = bannedFor)
-  val banned = Cache<String, Boolean>(expiration = bannedFor)
-  val rate = limit.toDouble() / window.inWholeNanoseconds
-  val maxTokens = limit.toDouble()
-  val log = logger("rateLimit")
-
-  before { e ->
-    if (banned[e.remoteAddress] == true)
-      throw StatusCodeException(TooManyRequests)
-  }
-  decorator { e, handler ->
-    val limiter = limits.getOrSet(e.remoteAddress) { RateLimit(maxTokens, System.nanoTime()) }
-    synchronized(limiter) {
-      val now = System.nanoTime()
-      val refill = (now - limiter.lastRefill) * rate
-      limiter.tokens = (limiter.tokens + refill).coerceAtMost(maxTokens)
-      limiter.lastRefill = now
-      if (limiter.tokens >= 1) limiter.tokens -= 1
-      else {
-        val count = violations.getOrSet(e.remoteAddress) { 0 } + 1
-        violations[e.remoteAddress] = count
-        if (count >= banAfter) {
-          banned[e.remoteAddress] = true
-          log.warn("banned ${e.remoteAddress} for $bannedFor after $count violations")
-          throw StatusCodeException(TooManyRequests)
-        }
-        val retryAfter = ceil((1 - limiter.tokens) / rate / 1e9).toInt()
-        e.header("Retry-After", retryAfter.toString())
-        throw StatusCodeException(TooManyRequests)
-      }
-    }
-    handler(e)
-  }
-}
-
 fun RouterConfig.securityBan(bannedFor: Duration = 1.hours,
   blacklistedPaths: List<String> = listOf("/..", "/.env", "/.git", "compose.yml", ".php")) {
   val banned = Cache<String, Boolean>(expiration = bannedFor)
@@ -149,4 +111,32 @@ fun RouterConfig.securityBan(bannedFor: Duration = 1.hours,
       throw ForbiddenException()
     }
   }
+}
+
+fun RouterConfig.bodySizeLimit(bodyLimit: Long = Config.optional("BODY_LIMIT_MB", "10").toLong() * 1024 * 1024) {
+  before { e ->
+    if (e.method.hasBody) {
+      val cl = e.header("Content-Length")?.toLongOrNull()
+      if (cl != null && cl > bodyLimit)
+        throw StatusCodeException(PayloadTooLarge, "Maximum request body size is $bodyLimit bytes, received $cl bytes")
+      e.requestStream = SizeLimitedInputStream(e.requestStream, bodyLimit)
+    }
+  }
+}
+
+internal class SizeLimitedInputStream(private val src: InputStream, private val limit: Long): InputStream() {
+  private var read = 0L
+
+  private fun check(n: Long): Long {
+    if (n == -1L) return -1
+    read += n
+    if (read > limit) throw StatusCodeException(PayloadTooLarge, "Request body exceeds limit of $limit bytes")
+    return n
+  }
+
+  override fun read() = src.read().also { if (it >= 0) check(1) }
+  override fun read(b: ByteArray, off: Int, len: Int) = check(src.read(b, off, len).toLong()).toInt()
+  override fun skip(n: Long) = check(src.skip(n))
+  override fun available() = (limit - read).coerceIn(0, src.available().toLong()).toInt()
+  override fun close() = src.close()
 }

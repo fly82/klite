@@ -90,7 +90,8 @@ open class HttpExchange(
   var failure: Throwable? = null
 
   val requestType: String? get() = header("Content-Type")
-  val requestStream: InputStream get() = if (method.hasBody) original.requestBody else error("$method should not have body")
+  var requestStream: InputStream get() = if (method.hasBody) original.requestBody else error("$method should not have body")
+    internal set(value) { original.setStreams(value, null) }
 
   var responseType: String?
     get() = responseHeaders["Content-type"]?.firstOrNull() ?: findRenderer(true).contentType.also { responseType = it }
