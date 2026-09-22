@@ -12,7 +12,7 @@ private val nsRegex = "(</?)([^:>\\s]+):".toRegex()
 fun String.extractXmlTag(tagName: String, preserveNs: Set<String> = emptySet()): String {
   val nsPrefixes = preserveNs.associateBy { """xmlns:([^=]+?)="${Regex.escape(it)}"""".toRegex().find(this)?.groups?.get(1)?.value }
   val tagRegex = "<([^:>]+:|)$tagName(?:\\s[^>]*)?>.*?</([^:>]+:|)$tagName>".toRegex(DOT_MATCHES_ALL)
-  val inner = tagRegex.find(this)?.value!!
+  val inner = tagRegex.find(this)?.value ?: error("Tag <$tagName> not found in XML")
   val stripped = nsRegex.replace(inner) {
     val prefix = it.groups[2]!!.value
     if (prefix in nsPrefixes) it.value else it.groups[1]!!.value
