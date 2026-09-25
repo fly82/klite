@@ -29,13 +29,13 @@ fun HttpRequest.Builder.authBearer(token: String) = setHeader("Authorization", "
 fun HttpRequest.Builder.contentType(mimeType: String) = setHeader("Content-Type", mimeType)
 fun HttpRequest.Builder.accept(mimeType: String) = setHeader("Accept", mimeType)
 
-typealias RequestModifier = HttpRequest.Builder.() -> HttpRequest.Builder
+typealias RequestModifier = HttpRequest.Builder.() -> Unit
 
 private val log = logger<HttpClient>()
 
-fun <R> HttpClient.request(url: URI, bodyHandler: BodyHandler<R>, modifier: RequestModifier = { this }): HttpResponse<R> {
+fun <R> HttpClient.request(url: URI, bodyHandler: BodyHandler<R>, modifier: RequestModifier = {}): HttpResponse<R> {
   val start = currentTimeMillis()
-  val req = HttpRequest.newBuilder().uri(url).timeout(1.minutes).modifier().build()
+  val req = HttpRequest.newBuilder().uri(url).timeout(1.minutes).apply(modifier).build()
   try {
     val res = send(req, bodyHandler)
     log.info("${req.method()} $url in ${currentTimeMillis() - start}ms - ${res.statusCode()}")
@@ -46,14 +46,14 @@ fun <R> HttpClient.request(url: URI, bodyHandler: BodyHandler<R>, modifier: Requ
   }
 }
 
-fun HttpClient.get(url: URI, modifier: RequestModifier = { this }) = request(url, ofString()) { GET().modifier() }
-fun HttpClient.post(url: URI, data: Any?, modifier: RequestModifier = { this }) = request(url, ofString()) { POST(toBodyPublisher(data)).modifier() }
-fun HttpClient.put(url: URI, data: Any?, modifier: RequestModifier = { this }) = request(url, ofString()) { PUT(toBodyPublisher(data)).modifier() }
-fun HttpClient.patch(url: URI, data: Any?, modifier: RequestModifier = { this }) = request(url, ofString()) { method("PATCH", toBodyPublisher(data)).modifier() }
-fun HttpClient.delete(url: URI, modifier: RequestModifier = { this }) = request(url, ofString()) { DELETE().modifier() }
+fun HttpClient.get(url: URI, modifier: RequestModifier = {}) = request(url, ofString()) { GET().apply(modifier) }
+fun HttpClient.post(url: URI, data: Any?, modifier: RequestModifier = {}) = request(url, ofString()) { POST(toBodyPublisher(data)).apply(modifier) }
+fun HttpClient.put(url: URI, data: Any?, modifier: RequestModifier = {}) = request(url, ofString()) { PUT(toBodyPublisher(data)).apply(modifier) }
+fun HttpClient.patch(url: URI, data: Any?, modifier: RequestModifier = {}) = request(url, ofString()) { method("PATCH", toBodyPublisher(data)).apply(modifier) }
+fun HttpClient.delete(url: URI, modifier: RequestModifier = {}) = request(url, ofString()) { DELETE().apply(modifier) }
 
-fun HttpClient.getStreaming(url: URI, modifier: RequestModifier = { this }) = request(url, ofInputStream()) { GET().modifier() }
-fun HttpClient.postStreaming(url: URI, data: Any?, modifier: RequestModifier = { this }) = request(url, ofInputStream()) { POST(toBodyPublisher(data)).modifier() }
+fun HttpClient.getStreaming(url: URI, modifier: RequestModifier = {}) = request(url, ofInputStream()) { GET().apply(modifier) }
+fun HttpClient.postStreaming(url: URI, data: Any?, modifier: RequestModifier = {}) = request(url, ofInputStream()) { POST(toBodyPublisher(data)).apply(modifier) }
 
 fun toBodyPublisher(data: Any?): BodyPublisher = when (data) {
   null, Unit -> BodyPublishers.noBody()

@@ -10,11 +10,11 @@ import kotlin.time.Duration.Companion.days
 /** Server-Sent Event */
 data class Event(val data: Any? = "", val name: String? = null, val id: Any? = null)
 
-fun HttpClient.getSSE(url: URI, modifier: RequestModifier = { this }): Sequence<Event> =
-  getStreaming(url) { timeout(1.days).modifier().header("Accept", "text/event-stream") }.bodyOrThrow().parseSSE()
+fun HttpClient.getSSE(url: URI, modifier: RequestModifier = {}): Sequence<Event> =
+  getStreaming(url) { timeout(1.days).apply(modifier).header("Accept", "text/event-stream") }.bodyOrThrow().parseSSE()
 
-fun HttpClient.postSSE(url: URI, data: Any?, modifier: RequestModifier = { this }): Sequence<Event> =
-  postStreaming(url, data) { timeout(1.days).modifier().header("Accept", "text/event-stream") }.bodyOrThrow().parseSSE()
+fun HttpClient.postSSE(url: URI, data: Any?, modifier: RequestModifier = {}): Sequence<Event> =
+  postStreaming(url, data) { timeout(1.days).apply(modifier).header("Accept", "text/event-stream") }.bodyOrThrow().parseSSE()
 
 fun InputStream.parseSSE(): Sequence<Event> = sequence {
   reader().useLines { lines ->

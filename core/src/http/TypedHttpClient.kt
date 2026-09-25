@@ -26,7 +26,7 @@ import kotlin.time.Duration.Companion.seconds
  */
 open class TypedHttpClient(
   val baseUrl: String = "",
-  val reqModifier: RequestModifier = { this },
+  val reqModifier: RequestModifier = {},
   errorHandler: ((HttpResponse<*>, String) -> Nothing)? = null,
   val retryCount: Int = 0,
   val retryAfter: Duration = 1.seconds,
@@ -45,9 +45,8 @@ open class TypedHttpClient(
     if (baseUrl.isNotEmpty()) info("Using $baseUrl")
   }
 
-  private fun buildReq(urlSuffix: String) = HttpRequest.newBuilder().uri(URI("$baseUrl$urlSuffix"))
-    .contentType("application/json; charset=UTF-8").accept("application/json")
-    .timeout(1.minutes).reqModifier()
+  private fun buildReq(urlSuffix: String): HttpRequest.Builder = HttpRequest.newBuilder().uri(URI("$baseUrl$urlSuffix"))
+    .contentType("application/json; charset=UTF-8").accept("application/json").timeout(1.minutes).apply(reqModifier)
 
   private fun <T> requestJson(urlSuffix: String, type: KType, payload: String? = null, modifier: RequestModifier): T =
     parse(request(urlSuffix, payload, BodyHandlers.ofString(), modifier).trim(), type)
@@ -56,7 +55,7 @@ open class TypedHttpClient(
     request(urlSuffix, payload, BodyHandlers.ofInputStream(), modifier)
 
   private fun <T> request(urlSuffix: String, payload: String? = null, bodyHandler: HttpResponse.BodyHandler<T>, modifier: RequestModifier): T {
-    val req = buildReq(urlSuffix).modifier().build()
+    val req = buildReq(urlSuffix).apply(modifier).build()
     val start = System.nanoTime()
     val res = http.send(req, bodyHandler)
     val ms = (System.nanoTime() - start) / 1000_000
@@ -91,44 +90,42 @@ open class TypedHttpClient(
   inline fun <reified T> request(urlSuffix: String, payload: String? = null, noinline modifier: RequestModifier): T =
     retryRequest(urlSuffix, typeOf<T>(), payload, modifier)
 
-  fun <T> get(urlSuffix: String, type: KType, modifier: RequestModifier? = null): T =
+  fun <T> get(urlSuffix: String, type: KType, modifier: RequestModifier = {}): T =
     retryRequest(urlSuffix, type) { GET().apply(modifier) }
 
-  inline fun <reified T> get(urlSuffix: String, noinline modifier: RequestModifier? = null): T = get(urlSuffix, typeOf<T>(), modifier)
+  inline fun <reified T> get(urlSuffix: String, noinline modifier: RequestModifier = {}): T = get(urlSuffix, typeOf<T>(), modifier)
 
-  fun <T> getSSE(urlSuffix: String, type: KType, eventName: String? = null, modifier: RequestModifier? = null): Sequence<T> =
+  fun <T> getSSE(urlSuffix: String, type: KType, eventName: String? = null, modifier: RequestModifier = {}): Sequence<T> =
     requestStream(urlSuffix) { GET().timeout(1.days).accept("text/event-stream").apply(modifier) }.parseSSE().parseEvents(eventName, type)
 
-  inline fun <reified T> getSSE(urlSuffix: String, eventName: String? = null, noinline modifier: RequestModifier? = null): Sequence<T> =
+  inline fun <reified T> getSSE(urlSuffix: String, eventName: String? = null, noinline modifier: RequestModifier = {}): Sequence<T> =
     getSSE(urlSuffix, typeOf<T>(), eventName, modifier)
 
-  fun <T> post(urlSuffix: String, o: Any?, type: KType, modifier: RequestModifier? = null): T = render(o).let {
+  fun <T> post(urlSuffix: String, o: Any?, type: KType, modifier: RequestModifier = {}): T = render(o).let {
     retryRequest(urlSuffix, type, it) { POST(ofString(it)).apply(modifier) } }
 
-  inline fun <reified T> post(urlSuffix: String, o: Any?, noinline modifier: RequestModifier? = null): T = post(urlSuffix, o, typeOf<T>(), modifier)
+  inline fun <reified T> post(urlSuffix: String, o: Any?, noinline modifier: RequestModifier = {}): T = post(urlSuffix, o, typeOf<T>(), modifier)
 
-  fun <T> postSSE(urlSuffix: String, o: Any?, type: KType, eventName: String? = null, modifier: RequestModifier? = null): Sequence<T> =
+  fun <T> postSSE(urlSuffix: String, o: Any?, type: KType, eventName: String? = null, modifier: RequestModifier = {}): Sequence<T> =
     render(o).let { requestStream(urlSuffix, it) { POST(ofString(it)).timeout(1.days).accept("text/event-stream").apply(modifier) } }.parseSSE().parseEvents(eventName, type)
 
-  inline fun <reified T> postSSE(urlSuffix: String, o: Any?, eventName: String? = null, noinline modifier: RequestModifier? = null): Sequence<T> =
+  inline fun <reified T> postSSE(urlSuffix: String, o: Any?, eventName: String? = null, noinline modifier: RequestModifier = {}): Sequence<T> =
     postSSE(urlSuffix, o, typeOf<T>(), eventName, modifier)
 
-  fun <T> put(urlSuffix: String, o: Any?, type: KType, modifier: RequestModifier? = null): T = render(o).let {
+  fun <T> put(urlSuffix: String, o: Any?, type: KType, modifier: RequestModifier = {}): T = render(o).let {
     retryRequest(urlSuffix, type, it) { PUT(ofString(it)).apply(modifier) } }
 
-  inline fun <reified T> put(urlSuffix: String, o: Any?, noinline modifier: RequestModifier? = null): T = put(urlSuffix, o, typeOf<T>(), modifier)
+  inline fun <reified T> put(urlSuffix: String, o: Any?, noinline modifier: RequestModifier = {}): T = put(urlSuffix, o, typeOf<T>(), modifier)
 
-  fun <T> delete(urlSuffix: String, type: KType, modifier: RequestModifier? = null): T =
+  fun <T> delete(urlSuffix: String, type: KType, modifier: RequestModifier = {}): T =
     retryRequest(urlSuffix, type) { DELETE().apply(modifier) }
 
-  inline fun <reified T> delete(urlSuffix: String, noinline modifier: RequestModifier? = null): T = delete(urlSuffix, typeOf<T>(), modifier)
+  inline fun <reified T> delete(urlSuffix: String, noinline modifier: RequestModifier = {}): T = delete(urlSuffix, typeOf<T>(), modifier)
 
-  fun <T> patch(urlSuffix: String, o: Any?, type: KType, modifier: RequestModifier? = null): T = render(o).let {
+  fun <T> patch(urlSuffix: String, o: Any?, type: KType, modifier: RequestModifier = {}): T = render(o).let {
     retryRequest(urlSuffix, type, it) { method("PATCH", ofString(it)).apply(modifier) } }
 
-  inline fun <reified T> patch(urlSuffix: String, o: Any?, noinline modifier: RequestModifier? = null): T = patch(urlSuffix, o, typeOf<T>(), modifier)
-
-  private fun HttpRequest.Builder.apply(modifier: RequestModifier?) = modifier?.let { it() } ?: this
+  inline fun <reified T> patch(urlSuffix: String, o: Any?, noinline modifier: RequestModifier = {}): T = patch(urlSuffix, o, typeOf<T>(), modifier)
 
   protected open fun render(o: Any?): String = o.toString()
 
