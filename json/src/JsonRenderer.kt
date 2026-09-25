@@ -21,6 +21,7 @@ class JsonRenderer(private val out: Writer, private val opts: JsonMapper): AutoC
       is Iterable<*> -> writeArray(o.iterator())
       is Sequence<*> -> writeArray(o.iterator())
       is Array<*> -> writeArray(o.iterator())
+      is ByteArray -> writeArray(o.iterator())
       is Map<*, *> -> writeObjectEntries(o.asSequence())
       null, is Number, is Boolean -> write(o.toString())
       else ->

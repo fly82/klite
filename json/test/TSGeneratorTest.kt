@@ -5,6 +5,7 @@ import ch.tutteli.atrium.api.verbs.expect
 import org.junit.jupiter.api.Test
 import java.io.ByteArrayOutputStream
 import java.io.PrintStream
+import kotlin.reflect.KClass
 
 class TSGeneratorTest {
   val out = ByteArrayOutputStream()
@@ -60,5 +61,15 @@ class TSGeneratorTest {
       export interface ShapeCircle {radius: number}
       export interface ShapeRect {height: number; width: number}
     """.trimIndent())
+  }
+
+  @Test fun `printTestData with ByteArray`() {
+    ts.printTestData(ByteArrayTestData::class as KClass<Any>)
+    expect(out.toString()).toEqual(/* language=TypeScript */ """
+
+      // klite.json.ByteArrayTestData
+      export const bytes = [1,2,3] as Array<number>
+      export const name = "test" as string
+    """.trimIndent() + "\n")
   }
 }

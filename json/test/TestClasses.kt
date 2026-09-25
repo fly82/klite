@@ -76,3 +76,8 @@ data class SomeData(override val name: String, val age: Int, val birthDate: Loca
 interface NoProps { fun onlyMethods() }
 
 data class CustomTypes(val id: TSID<CustomTypes>, val date: LocalDate)
+
+object ByteArrayTestData {
+  val bytes: ByteArray = byteArrayOf(1, 2, 3)
+  val name: String = "test"
+}
