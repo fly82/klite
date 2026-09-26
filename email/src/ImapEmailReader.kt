@@ -26,14 +26,14 @@ open class ImapEmailReader(
   private val log = logger()
 
   /** Fetches unseen messages without marking them as read */
-  fun fetchUnseen(): List<ReceivedEmail> = useFolder {
-    search(FlagTerm(Flags(SEEN), false)).map { it.toReceivedEmail() }
+  fun fetchUnseen(): List<EmailMessage> = useFolder {
+    search(FlagTerm(Flags(SEEN), false)).map { it.toEmailMessage() }
   }
 
   /** Processes unseen messages one by one, marking each as seen after [handler] returns successfully */
-  fun processUnseen(handler: (ReceivedEmail) -> Unit) = useFolder(Folder.READ_WRITE) {
+  fun processUnseen(handler: (EmailMessage) -> Unit) = useFolder(Folder.READ_WRITE) {
     search(FlagTerm(Flags(SEEN), false)).forEach {
-      val email = it.toReceivedEmail()
+      val email = it.toEmailMessage()
       handler(email)
       it.setFlag(SEEN, true)
       log.debug("Processed email ${email.id ?: email.subject}")

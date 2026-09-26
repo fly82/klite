@@ -1,7 +1,7 @@
 package klite.email
 
 import java.io.InputStream
-import java.util.*
+import java.time.Instant
 import javax.mail.Address
 import javax.mail.Message
 import javax.mail.Message.RecipientType
@@ -9,39 +9,39 @@ import javax.mail.Multipart
 import javax.mail.Part
 import javax.mail.internet.InternetAddress
 
-data class ReceivedEmail(
-  val id: String?,
-  val from: InternetAddress?,
-  val to: List<InternetAddress>,
-  val cc: List<InternetAddress> = emptyList(),
-  val subject: String?,
-  val date: Date?,
+data class EmailMessage(
+  val from: Named,
+  val to: List<Named>,
+  val cc: List<Named> = emptyList(),
+  val subject: String,
+  val receivedAt: Instant,
   val text: String? = null,
   val html: String? = null,
   val attachments: Map<String, ByteArray> = emptyMap(),
+  val id: String?,
 )
 
-fun Message.toReceivedEmail(): ReceivedEmail {
+fun Message.toEmailMessage(): EmailMessage {
   val text = StringBuilder()
   val html = StringBuilder()
   val attachments = mutableMapOf<String, ByteArray>()
   collectBody(text, html, attachments)
-  return ReceivedEmail(
-    id = getHeader("Message-ID")?.firstOrNull(),
-    from = from?.firstOrNull() as? InternetAddress,
-    to = recipientsOfType(RecipientType.TO),
-    cc = recipientsOfType(RecipientType.CC),
-    subject = subject,
-    date = sentDate,
-    text = text.toString().takeIf { it.isNotEmpty() },
-    html = html.toString().takeIf { it.isNotEmpty() },
-    attachments = attachments,
+  return EmailMessage(
+    from.first().toNamed(),
+    recipientsOfType(RecipientType.TO),
+    recipientsOfType(RecipientType.CC),
+    subject,
+    receivedDate.toInstant(),
+    text.toString().takeIf { it.isNotEmpty() },
+    html.toString().takeIf { it.isNotEmpty() },
+    attachments,
+    getHeader("Message-ID")?.firstOrNull(),
   )
 }
 
 private fun Message.recipientsOfType(type: RecipientType) = getRecipients(type).addresses
 
-private val Array<Address>?.addresses get() = this?.filterIsInstance<InternetAddress>() ?: emptyList()
+private val Array<Address>?.addresses get() = this?.filterIsInstance<InternetAddress>()?.map { it.toNamed() } ?: emptyList()
 
 private fun Part.collectBody(text: StringBuilder, html: StringBuilder, attachments: MutableMap<String, ByteArray>) {
   when {

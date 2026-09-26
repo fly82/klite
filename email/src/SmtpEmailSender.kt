@@ -26,12 +26,12 @@ open class SmtpEmailSender(
   },
   private val session: Session = Session.getInstance(props, authenticator.takeIf { smtpUser != null }),
 ): EmailSender {
-  val defaultFrom = NamedEmail(Email(Config["MAIL_FROM"]), Config.optional("MAIL_FROM_NAME", translate(Lang.available.first(), "title")))
+  val defaultFrom = Named(Email(Config["MAIL_FROM"]), Config.optional("MAIL_FROM_NAME", translate(Lang.available.first(), "title")))
   val bccTo = Config.optional("MAIL_BCC_TO")?.let { InternetAddress(it) }
   private val log = logger()
 
   override fun send(to: Email, subject: String, body: String, bodyMimeType: String, attachments: Map<String, ByteArray>,
-                    cc: List<Email>, bcc: List<Email>, from: NamedEmail?) {
+                    cc: List<Email>, bcc: List<Email>, from: Named?) {
     send(to, subject, from ?: defaultFrom) {
       cc.forEach { setRecipient(CC, InternetAddress(it.value)) }
       bcc.forEach { setRecipient(BCC, InternetAddress(it.value)) }
@@ -54,7 +54,7 @@ open class SmtpEmailSender(
 
   private fun MimePart.setBody(body: String, bodyMimeType: String) = setContent(body, MimeTypes.withCharset(bodyMimeType))
 
-  protected open fun send(to: Email, subject: String, from: NamedEmail, block: MimeMessage.() -> Unit) = MimeMessage(session).apply {
+  protected open fun send(to: Email, subject: String, from: Named, block: MimeMessage.() -> Unit) = MimeMessage(session).apply {
     try {
       setFrom(from.toAddress())
       if (bccTo != null) setRecipient(BCC, bccTo)

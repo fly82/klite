@@ -11,7 +11,7 @@ open class EmailContent(val lang: String, val labelKey: String, val substitution
   open val subject get() = translate(lang, "emails.$labelKey.subject", substitutions)
   open val body get() = translate(lang, "emails.$labelKey.body", substitutions)
   open val actionLabel get() = translate(lang, "emails.$labelKey.action", substitutions)
-  open val from: NamedEmail? get() = null
+  open val from: Named? get() = null
 
   override fun equals(other: Any?) = other is EmailContent && javaClass == other.javaClass && lang == other.lang && labelKey == other.labelKey && substitutions == other.substitutions && actionUrl == other.actionUrl
   override fun hashCode() = Objects.hash(lang, labelKey, substitutions, actionUrl)

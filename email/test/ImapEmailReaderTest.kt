@@ -9,6 +9,7 @@ import io.mockk.mockk
 import io.mockk.spyk
 import io.mockk.verify
 import klite.Config
+import klite.Email
 import klite.MimeTypes
 import org.junit.jupiter.api.Test
 import java.util.*
@@ -43,12 +44,11 @@ class ImapEmailReaderTest {
       setRecipient(TO, InternetAddress("to@example.com"))
       subject = "Hello"
       setText("Hi there")
-    }.toReceivedEmail()
+    }.toEmailMessage()
 
     expect(email.subject).toEqual("Hello")
-    expect(email.from?.address).toEqual("from@example.com")
-    expect(email.from?.personal).toEqual("Sender")
-    expect(email.to.map { it.address }).toContainExactly("to@example.com")
+    expect(email.from).toEqual(Named(Email("from@example.com"), "Sender"))
+    expect(email.to).toContainExactly(Named(Email("to@example.com"), null))
     expect(email.text).toEqual("Hi there")
     expect(email.html).toEqual(null)
     expect(email.attachments).toEqual(emptyMap())
@@ -68,7 +68,7 @@ class ImapEmailReaderTest {
           disposition = Part.ATTACHMENT
         })
       })
-    }.toReceivedEmail()
+    }.toEmailMessage()
 
     expect(email.subject).toEqual("Files")
     expect(email.html).toEqual("<p>Hello</p>")
@@ -84,9 +84,9 @@ class ImapEmailReaderTest {
       setRecipient(CC, InternetAddress("cc@example.com"))
       subject = "Cc"
       setText("Body")
-    }.apply { setHeader("Message-ID", "<id@example.com>") }.toReceivedEmail()
+    }.apply { setHeader("Message-ID", "<id@example.com>") }.toEmailMessage()
 
-    expect(email.cc.map { it.address }).toContainExactly("cc@example.com")
+    expect(email.cc.map { it.email }).toContainExactly(Email("cc@example.com"))
     expect(email.id).toEqual("<id@example.com>")
   }
 
