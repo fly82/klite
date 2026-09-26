@@ -1,4 +1,5 @@
 # Unreleased
+* smtp: ImapEmailReader introduced for reading incoming mail over IMAP
 * core/http: simplify RequestModifier usage
 * json: support for ByteArray in TSGenerator test data generation
 * ai: AIClient can now accept multiple images as an input
