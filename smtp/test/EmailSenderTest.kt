@@ -1,4 +1,4 @@
-package klite.smtp
+package klite.email
 
 import ch.tutteli.atrium.api.fluent.en_GB.toBeAnInstanceOf
 import ch.tutteli.atrium.api.verbs.expect

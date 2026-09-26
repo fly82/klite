@@ -1,4 +1,4 @@
-package klite.smtp
+package klite.email
 
 import klite.MimeTypes
 import klite.html.unaryPlus

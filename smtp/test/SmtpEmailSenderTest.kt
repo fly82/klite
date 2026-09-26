@@ -1,4 +1,4 @@
-package klite.smtp
+package klite.email
 
 import ch.tutteli.atrium.api.fluent.en_GB.toContainExactly
 import ch.tutteli.atrium.api.fluent.en_GB.toEqual

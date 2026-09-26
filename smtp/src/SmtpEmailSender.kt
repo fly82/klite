@@ -1,4 +1,4 @@
-package klite.smtp
+package klite.email
 
 import klite.*
 import klite.i18n.Lang
