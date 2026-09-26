@@ -78,7 +78,7 @@ class PDFExtractorTest {
 
   @Test fun `extractData retries on failure`() {
     var attempts = 0
-    every { aiClient.query(any(), any(), any(), any()) } answers {
+    every { aiClient.query(any()) } answers {
       attempts++
       if (attempts < 3) throw RuntimeException("API error")
       response.copy(text = """{"key": "recovered"}""")

@@ -1,6 +1,7 @@
 # Unreleased
 * core/http: simplify RequestModifier usage
 * json: support for ByteArray in TSGenerator test data generation
+* ai: AIClient can now accept multiple images as an input
 
 # 2.0.7
 * xml: @XmlPath now supports attribute predicates to filter elements by attribute value, e.g. `item[@type=something]`

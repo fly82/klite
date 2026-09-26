@@ -25,18 +25,19 @@ open class OpenAIClient(httpClient: HttpClient, val params: Node = emptyMap()): 
     json = JsonMapper(keys = SnakeCase, values = instantAsInt),
     reqModifier = { header("Authorization", auth).timeout(30.seconds) })
 
-  override fun query(input: String, imageUrl: URI?, prevResponseId: String?, params: Node): AIClient.Response =
+  override fun query(input: String, vararg imageUrl: URI, prevResponseId: String?, params: Node): AIClient.Response =
     query(toInput(input, imageUrl), params, prevResponseId).toTextResponse()
 
-  override fun stream(input: String, imageUrl: URI?, params: Node): Sequence<String> =
+  override fun stream(input: String, vararg imageUrl: URI, params: Node): Sequence<String> =
     http.postSSE<Node>("/responses", mapOf("model" to model, "input" to toInput(input, imageUrl), "stream" to true) + this.params + params).mapNotNull { node ->
       if (node.text("type") == "response.output_text.delta") node.text("delta") else null
     }
 
-  private fun toInput(input: String, imageUrl: URI?): Any = if (imageUrl != null) listOf(Input(listOf(
-    Content(text = input, type = "input_text"),
-    Content(imageUrl = if (imageUrl.scheme == "file") File(imageUrl.path).toBase64Url() else imageUrl, type = "input_image")
-  ))) else input
+  private fun toInput(input: String, imageUrl: Array<out URI>): Any = if (imageUrl.isNotEmpty()) listOf(Input(listOf(
+    Content(text = input, type = "input_text")
+  ) + imageUrl.map {
+    Content(imageUrl = if (it.scheme == "file") File(it.path).toBase64Url() else it, type = "input_image")
+  })) else input
 
   // TODO: try structured output with "text": {"format": {"type": "json_schema"}}}
   open fun query(input: Any /* String | List<Input | Output> */, params: Node = emptyMap(), prevResponseId: String? = null): Response =
