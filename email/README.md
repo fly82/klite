@@ -1,4 +1,4 @@
-# klite-smtp
+# klite-email
 
 Provides a way to send plain text or html email over SMTP and read incoming mail over IMAP using *javax.mail*.
 
@@ -45,5 +45,4 @@ reader.processUnseen { email ->
 val unseen: List<ReceivedEmail> = reader.fetchUnseen()
 ```
 
-`ReceivedEmail` exposes `id`, `from`, `to`, `cc`, `subject`, `date`, `text`, `html` and `attachments`.
 Use `ImapEmailReader.useFolder` for lower-level access (e.g. to move or delete messages).

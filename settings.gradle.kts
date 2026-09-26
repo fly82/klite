@@ -48,7 +48,7 @@ include(
   "jdbc-test",
   "oauth",
   "push",
-  "smtp",
+  "email",
   "liquibase",
   "slf4j",
   "openapi",

@@ -81,7 +81,7 @@ See the [Tutorial](TUTORIAL.md) to grasp the basics quickly.
 * [jobs](jobs) - provides a simple scheduled JobRunner
 * [openapi](openapi) - generates OpenAPI 3.0 spec for all routes in a context, viewable with [Swagger UI](https://swagger.io/tools/swagger-ui/)
 * [oauth](oauth) - implements OAuth 2.0 login with several providers
-* [smtp](smtp) - for sending email over SMTP and reading it over IMAP
+* [email](email) - for sending email over SMTP and reading it over IMAP
 * [push](push) - implements Web Push notifications (VAPID) for sending push notifications to browsers
 * [ai](ai) - new module for calling AI clients, implementing MCP servers and extracting data from PDF
 
