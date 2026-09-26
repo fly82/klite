@@ -2,6 +2,7 @@ package klite.json
 
 import ch.tutteli.atrium.api.fluent.en_GB.toEqual
 import ch.tutteli.atrium.api.verbs.expect
+import klite.Decimal
 import klite.nodes.at
 import klite.nodes.text
 import org.junit.jupiter.api.Test
@@ -60,6 +61,56 @@ class JsonSchemaTest {
         "type" to "object",
         "properties" to mapOf("x" to mapOf("type" to "number"), "y" to mapOf("type" to "integer", "format" to "int32"))
       )
+    ))
+  }
+
+  @Test fun `map type`() {
+    val schema = Map::class.createType(listOf(
+      KTypeProjection.invariant(java.time.LocalDate::class.createType()),
+      KTypeProjection.invariant(Decimal::class.createType())
+    )).toJsonSchema()
+    expect(schema).toEqual(mapOf(
+      "type" to "object",
+      "propertyNames" to mapOf("type" to "string", "format" to "date"),
+      "additionalProperties" to mapOf("type" to "number")
+    ))
+  }
+
+  @Test fun `map with string keys`() {
+    val schema = Map::class.createType(listOf(
+      KTypeProjection.invariant(String::class.createType()),
+      KTypeProjection.invariant(Nested::class.createType())
+    )).toJsonSchema()
+    expect(schema).toEqual(mapOf(
+      "type" to "object",
+      "propertyNames" to mapOf("type" to "string"),
+      "additionalProperties" to mapOf(
+        "type" to "object",
+        "properties" to mapOf("x" to mapOf("type" to "number"), "y" to mapOf("type" to "integer", "format" to "int32"))
+      )
+    ))
+  }
+
+  @Test fun `map with enum keys`() {
+    val schema = Map::class.createType(listOf(
+      KTypeProjection.invariant(SomeEnum::class.createType()),
+      KTypeProjection.invariant(String::class.createType())
+    )).toJsonSchema()
+    expect(schema).toEqual(mapOf(
+      "type" to "object",
+      "propertyNames" to mapOf("type" to "string", "enum" to listOf(SomeEnum.HELLO, SomeEnum.WORLD)),
+      "additionalProperties" to mapOf("type" to "string")
+    ))
+  }
+
+  @Test fun `map with non-string keys omits propertyNames`() {
+    val schema = Map::class.createType(listOf(
+      KTypeProjection.invariant(Int::class.createType()),
+      KTypeProjection.invariant(String::class.createType())
+    )).toJsonSchema()
+    expect(schema).toEqual(mapOf(
+      "type" to "object",
+      "additionalProperties" to mapOf("type" to "string")
     ))
   }
 

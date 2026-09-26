@@ -25,6 +25,9 @@ fun KType.toJsonSchema(response: Boolean = false): Map<String, Any?>? {
     cls.isSubclassOf(Number::class) -> mapOf("type" to "number")
     cls.isSubclassOf(Enum::class) -> mapOf("type" to "string", "enum" to cls.java.enumConstants.toList())
     cls.isSubclassOf(Array::class) || cls.isSubclassOf(Iterable::class) -> mapOf("type" to "array", "items" to arguments.firstOrNull()?.type?.toJsonSchema(response))
+    cls.isSubclassOf(Map::class) -> mapOfNotNull("type" to "object",
+      "propertyNames" to arguments.getOrNull(0)?.type?.toJsonSchema(response)?.takeIf { it["type"] == "string" },
+      "additionalProperties" to arguments.getOrNull(1)?.type?.toJsonSchema(response))
     cls.isSubclassOf(CharSequence::class) || Converter.supports(cls) && cls != Any::class -> mapOfNotNull("type" to "string", "format" to when (cls) {
       LocalDate::class, Date::class -> "date"
       LocalTime::class -> "time"
