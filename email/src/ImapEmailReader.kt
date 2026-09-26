@@ -1,12 +1,15 @@
 package klite.email
 
 import klite.Config
-import klite.debug
+import klite.info
 import klite.logger
 import java.util.*
 import javax.mail.*
 import javax.mail.Flags.Flag.SEEN
+import javax.mail.Folder.READ_ONLY
+import javax.mail.Folder.READ_WRITE
 import javax.mail.search.FlagTerm
+import javax.mail.search.SearchTerm
 
 open class ImapEmailReader(
   imapUser: String = Config.required("IMAP_USER"),
@@ -25,29 +28,34 @@ open class ImapEmailReader(
 ) {
   private val log = logger()
 
-  /** Fetches unseen messages without marking them as read */
-  fun fetchUnseen(): List<EmailMessage> = useFolder {
-    search(FlagTerm(Flags(SEEN), false)).map { it.toEmailMessage() }
+  companion object {
+    val unseen = FlagTerm(Flags(SEEN), false)
   }
 
-  /** Processes unseen messages one by one, marking each as seen after [handler] returns successfully */
-  fun processUnseen(handler: (EmailMessage) -> Unit) = useFolder(Folder.READ_WRITE) {
-    search(FlagTerm(Flags(SEEN), false)).forEach {
+  /** Fetches messages without marking them as read */
+  fun fetch(term: SearchTerm = unseen): List<EmailMessage> = useFolder {
+    search(term).map { it.toEmailMessage() }
+  }
+
+  /** Processes messages one by one, marking each as seen after [handler] returns successfully */
+  fun process(term: FlagTerm = unseen, mark: (Message) -> Unit = { it.setFlag(term.flags.systemFlags.first(), true) }, handler: (EmailMessage) -> Unit) = useFolder(READ_WRITE) {
+    search(term).forEach {
       val email = it.toEmailMessage()
       handler(email)
-      it.setFlag(SEEN, true)
-      log.debug("Processed email ${email.id ?: email.subject}")
+      mark(it)
+      log.info("Processed email ${email.id ?: email.subject} from ${email.from}")
     }
   }
 
   /** Opens [folderName] with the given [mode], passing it to [block], then closes everything */
-  fun <T> useFolder(mode: Int = Folder.READ_ONLY, block: Folder.() -> T): T {
+  fun <T> useFolder(mode: Int = READ_ONLY, block: Folder.() -> T): T {
     val store = session.store
     store.connect()
     return store.use { store ->
-      val folder = store.getFolder(folderName)
-      folder.open(mode)
-      try { folder.block() } finally { folder.close(false) }
+      store.getFolder(folderName).use { folder ->
+        folder.open(mode)
+        folder.block()
+      }
     }
   }
 }

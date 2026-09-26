@@ -93,7 +93,7 @@ class ImapEmailReaderTest {
   @Test fun `fetchUnseen does not mark messages as read`() {
     val message = spyk(message())
     every { folder.search(any()) } returns arrayOf(message)
-    val emails = reader.fetchUnseen()
+    val emails = reader.fetch()
     expect(emails.size).toEqual(1)
     expect(emails.first().subject).toEqual("Subject")
     verify(exactly = 0) { message.setFlag(Flags.Flag.SEEN, true) }
@@ -103,7 +103,7 @@ class ImapEmailReaderTest {
     val message = spyk(message())
     every { folder.search(any()) } returns arrayOf(message)
     val processed = mutableListOf<String?>()
-    reader.processUnseen { processed += it.subject }
+    reader.process { processed += it.subject }
     expect(processed).toContainExactly("Subject")
     verify { message.setFlag(Flags.Flag.SEEN, true) }
   }
@@ -111,7 +111,7 @@ class ImapEmailReaderTest {
   @Test fun `processUnseen keeps unread if handler fails`() {
     val message = spyk(message())
     every { folder.search(any()) } returns arrayOf(message)
-    expect(runCatching { reader.processUnseen { error("boom") } }.isFailure).toEqual(true)
+    expect(runCatching { reader.process { error("boom") } }.isFailure).toEqual(true)
     verify(exactly = 0) { message.setFlag(Flags.Flag.SEEN, true) }
   }
 
