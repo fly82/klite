@@ -9,7 +9,7 @@ import javax.mail.Flags.Flag.SEEN
 import javax.mail.search.FlagTerm
 
 open class ImapEmailReader(
-  user: String = Config.required("IMAP_USER"),
+  imapUser: String = Config.required("IMAP_USER"),
   props: Properties = Properties().also {
     it["mail.store.protocol"] = "imaps"
     it["mail.imaps.host"] = Config.optional("IMAP_HOST")
@@ -18,7 +18,7 @@ open class ImapEmailReader(
     it["mail.imaps.auth"] = true
   },
   private val authenticator: Authenticator = object: Authenticator() {
-    override fun getPasswordAuthentication() = PasswordAuthentication(user, Config.required("IMAP_PASS"))
+    override fun getPasswordAuthentication() = PasswordAuthentication(imapUser, Config.required("IMAP_PASS"))
   },
   private val session: Session = Session.getInstance(props, authenticator),
   private val folderName: String = Config.optional("IMAP_FOLDER", "INBOX"),
