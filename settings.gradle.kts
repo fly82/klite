@@ -49,6 +49,7 @@ include(
   "oauth",
   "push",
   "email",
+  "smtp",
   "liquibase",
   "slf4j",
   "openapi",
