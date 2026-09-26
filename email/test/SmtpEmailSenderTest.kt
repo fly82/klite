@@ -1,6 +1,5 @@
 package klite.email
 
-import ch.tutteli.atrium.api.fluent.en_GB.toContainExactly
 import ch.tutteli.atrium.api.fluent.en_GB.toEqual
 import ch.tutteli.atrium.api.fluent.en_GB.toStartWith
 import ch.tutteli.atrium.api.verbs.expect
@@ -23,7 +22,7 @@ class SmtpEmailSenderTest {
 
   @Test fun defaultFrom() {
     val from = sender.defaultFrom
-    expect(from.address).toEqual("klite@azib.net")
+    expect(from.email.value).toEqual("klite@azib.net")
   }
 
   @Test fun `send plain text`() = runTest {
@@ -31,7 +30,7 @@ class SmtpEmailSenderTest {
     val message = slot<MimeMessage>()
     val toAddress = InternetAddress(email.value)
     verify { session.getTransport(toAddress).sendMessage(capture(message), arrayOf(toAddress)) }
-    expect(message.captured.from.toList()).toContainExactly(sender.defaultFrom)
+    expect(message.captured.from.first().toNamed()).toEqual(sender.defaultFrom)
     expect(message.captured.subject).toEqual("Subject")
     expect(message.captured.contentType).toEqual("text/plain; charset=UTF-8")
     expect(message.captured.content).toEqual("Body")

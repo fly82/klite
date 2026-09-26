@@ -31,7 +31,7 @@ fun Message.toEmailMessage(): EmailMessage {
     recipientsOfType(RecipientType.TO),
     recipientsOfType(RecipientType.CC),
     subject,
-    receivedDate.toInstant(),
+    receivedDate?.toInstant() ?: Instant.now(),
     text.toString().takeIf { it.isNotEmpty() },
     html.toString().takeIf { it.isNotEmpty() },
     attachments,
