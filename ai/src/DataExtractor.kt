@@ -17,16 +17,16 @@ class DataExtractor(
 ) {
   private val log = logger()
 
-  inline fun <reified T: Any> extract(text: String = "", vararg imageUrl: URI, provided: Map<KProperty1<*, *>, Any?> = emptyMap()): T =
-    extract(text, typeOf<T>(), *imageUrl, provided = provided)
+  inline fun <reified T: Any> extract(text: String = "", vararg fileUrl: URI, provided: Map<KProperty1<*, *>, Any?> = emptyMap()): T =
+    extract(text, typeOf<T>(), *fileUrl, provided = provided)
 
-  fun <T: Any> extract(text: String, type: KType, vararg imageUrl: URI, provided: Map<KProperty1<*, *>, Any?> = emptyMap(), numAttempts: Int = 3): T {
+  fun <T: Any> extract(text: String, type: KType, vararg fileUrl: URI, provided: Map<KProperty1<*, *>, Any?> = emptyMap(), numAttempts: Int = 3): T {
     val providedText = if (provided.isNotEmpty()) ", use these provided values: " + provided.entries.joinToString { "${it.key.name}=${it.value}" } else ""
     var prompt = "Output plain json of $type according to schema ${type.toJsonSchema()}, skip 'id' and non-required fields if not available:\n$text\n$providedText"
     var response: AIClient.Response? = null
     repeat(numAttempts) {
       try {
-        response = aiClient.query(prompt, *imageUrl, prevResponseId = response?.id)
+        response = aiClient.query(prompt, *fileUrl, prevResponseId = response?.id)
         val jsonStr = response.text.stripMarkdown()
         if (provided.isEmpty()) return json.parse(jsonStr, type)
         return json.parse(jsonStr, type)
