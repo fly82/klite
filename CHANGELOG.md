@@ -2,7 +2,7 @@
 * core/http: simplify RequestModifier usage
 * json: `toJsonSchema()` now describes Map key/value types using propertyNames/additionalProperties
 * json: support for ByteArray in TSGenerator test data generation
-* ai: AIClient can now accept multiple images as an input
+* ai: AIClient can now accept multiple image or document files as an input
 * email: ImapEmailReader introduced for reading incoming mail over IMAP
 * smtp: module was renamed to email, update references
 

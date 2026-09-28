@@ -24,18 +24,20 @@ open class GeminiClient(httpClient: HttpClient, val params: Node = emptyMap()): 
     json = JsonMapper(keys = SnakeCase),
     reqModifier = { timeout(30.seconds) })
 
-  override fun query(input: String, vararg imageUrl: URI, prevResponseId: String?, params: Node): AIClient.Response =
-    query(toInput(input, imageUrl), params, prevResponseId).toTextResponse()
+  override fun query(input: String, vararg fileUrl: URI, prevResponseId: String?, params: Node): AIClient.Response =
+    query(toInput(input, fileUrl), params, prevResponseId).toTextResponse()
 
-  override fun stream(input: String, vararg imageUrl: URI, params: Node): Sequence<String> =
-    http.postSSE<Node>("/interactions?key=$key", mapOf("model" to model, "input" to toInput(input, imageUrl), "stream" to true) + this.params + params, eventName = "step.delta").mapNotNull { node ->
+  override fun stream(input: String, vararg fileUrl: URI, params: Node): Sequence<String> =
+    http.postSSE<Node>("/interactions?key=$key", mapOf("model" to model, "input" to toInput(input, fileUrl), "stream" to true) + this.params + params, eventName = "step.delta").mapNotNull { node ->
       node.at("delta").textOrNull("text")
     }
 
-  private fun toInput(input: String, imageUrl: Array<out URI>): Any = if (imageUrl.isNotEmpty()) listOf(
+  private fun toInput(input: String, fileUrl: Array<out URI>): Any = if (fileUrl.isNotEmpty()) listOf(
     Content("text", input)
-  ) + imageUrl.map {
-    Content("image", data = it.toURL().readBytes().base64Encode(), mimeType = MimeTypes.typeFor(it.path)!!)
+  ) + fileUrl.map {
+    val mimeType = MimeTypes.typeFor(it.path)!!
+    val isImage = mimeType.contains("image")
+    Content(if (isImage) "image" else "document", data = it.toURL().readBytes().base64Encode(), mimeType = mimeType)
   } else input
 
   fun query(input: Any /* String | List<Content | Step> */, params: Node = emptyMap(), prevInteractionId: String? = null): Response =
