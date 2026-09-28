@@ -44,7 +44,7 @@ open class OpenAIClient(httpClient: HttpClient, val params: Node = emptyMap()): 
     http.post("/responses", mapOf("model" to model, "input" to input, "previous_response_id" to prevResponseId) + this.params + params)
 
   data class Input(val content: List<Content>, val role: String = "user")
-  data class Output(val id: String, val type: String, val content: List<Content>, val role: String? = null)
+  data class Output(val id: String, val type: String, val content: List<Content> = emptyList(), val role: String? = null)
   data class Content(val type: String, val text: String? = null, val imageUrl: URI? = null, val detail: String? = null)
   data class Response(val id: String, val createdAt: Instant, val status: String, val model: String, val output: List<Output>) {
     fun toTextResponse() = AIClient.Response(id, status, model, output.first { it.type == "message" }.content.first().text!!)
