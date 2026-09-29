@@ -2,12 +2,20 @@ package klite.jdbc
 
 import klite.Decimal
 import klite.d
+import klite.trimToNull
 import klite.uuid
+import java.lang.reflect.InvocationHandler
+import java.lang.reflect.InvocationTargetException
+import java.lang.reflect.Method
+import java.lang.reflect.Proxy
 import java.sql.ResultSet
+import java.sql.ResultSetMetaData
 import java.time.Instant
 import java.time.Period
 import kotlin.reflect.KType
 import kotlin.reflect.typeOf
+import kotlin.text.RegexOption.IGNORE_CASE
+import kotlin.text.RegexOption.MULTILINE
 
 @Suppress("UNCHECKED_CAST")
 fun <T> ResultSet.get(column: String, type: KType): T = JdbcConverter.from(when (type.classifier) {
@@ -56,3 +64,52 @@ fun ResultSet.getDecimalOrNull(column: String) = getString(column)?.d
 
 inline fun <reified T: Enum<T>> ResultSet.getEnum(column: String) = enumValueOf<T>(getString(column))
 inline fun <reified T: Enum<T>> ResultSet.getEnumOrNull(column: String) = getString(column)?.let { enumValueOf<T>(it) }
+
+/**
+ * Makes "alias.column" (joined table) columns accessible on any DB, e.g. getString("b.id").
+ * Resolution is lazy — column metadata is only scanned when a dotted name is first used.
+ */
+internal fun ResultSet.withJoinPrefixes(select: String): ResultSet {
+  val aliases = joinAliases(select)
+  return if (aliases.isEmpty()) this
+  else Proxy.newProxyInstance(ResultSet::class.java.classLoader, arrayOf(ResultSet::class.java),
+    PrefixedColumns(this, aliases)) as ResultSet
+}
+
+private class PrefixedColumns(private val rs: ResultSet, private val aliases: List<String>): InvocationHandler {
+  private val prefixes by lazy { joinedPrefixes(rs.metaData, aliases) }
+
+  override fun invoke(proxy: Any, method: Method, args: Array<out Any>?): Any? = try {
+    val label = args?.getOrNull(0) as? String
+    if (label != null && '.' in label && method.parameterTypes[0] == String::class.java) {
+      val index = prefixes[label] ?: rs.findColumn(label)
+      if (method.name == "findColumn") index
+      else ResultSet::class.java.getMethod(method.name, Integer.TYPE, *method.parameterTypes.drop(1).toTypedArray())
+        .invoke(rs, index, *args.drop(1).toTypedArray())
+    } else method.invoke(rs, *(args ?: emptyArray()))
+  } catch (e: InvocationTargetException) {
+    throw e.targetException
+  }
+}
+
+private fun joinedPrefixes(md: ResultSetMetaData, aliases: List<String>): Map<String, Int> {
+  val map = HashMap<String, Int>()
+  var joinCount = 0
+  var prevTable = ""
+  var groupFirst = ""
+  for (i in 1..md.columnCount) {
+    val label = md.getColumnLabel(i)
+    val table = md.getTableName(i)
+    // new table on table name change; self-join repeats the same table name + first label
+    if (joinCount == 0 || table.isNotEmpty() && table != prevTable) {
+      joinCount++
+      prevTable = table
+      groupFirst = label
+    } else if (label == groupFirst) joinCount++
+    if (joinCount > 1) map.putIfAbsent("${aliases.getOrNull(joinCount - 2) ?: joinCount}.$label", i)
+  }
+  return map
+}
+
+private val joinRegex = "\\bjoin\\s+(\\w+?)(\\s+as)?(\\s+(\\w+?))?\\s+(on|using)\\b".toRegex(setOf(IGNORE_CASE, MULTILINE))
+internal fun joinAliases(select: String) = joinRegex.findAll(select).map { it.groupValues[4].trimToNull() ?: it.groupValues[1] }.toList()

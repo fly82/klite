@@ -18,7 +18,7 @@ private fun KClass<*>.annotationMeta() = annotationMetaCache[this] ?: publicProp
 
 inline fun <reified T: Any> ResultSet.create(vararg provided: PropValue<T, *>) = create(T::class, *provided)
 
-/** Take only prefixed column names, e.g. "alias.id" to get second joined table, see [populatePgColumnNameIndex] for details */
+/** Take only prefixed column names, e.g. "alias.id" to get second joined table, see [withJoinPrefixes] for details */
 inline fun <reified T: Any> ResultSet.create(columnPrefix: String, vararg provided: PropValue<T, *>) = create(T::class, *provided, columnPrefix = columnPrefix)
 
 fun <T: Any> ResultSet.create(type: KClass<T>, vararg provided: PropValue<T, *>, columnPrefix: String = ""): T {
