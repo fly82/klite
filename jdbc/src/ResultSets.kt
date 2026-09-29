@@ -82,7 +82,7 @@ private class PrefixedColumns(private val rs: ResultSet, private val aliases: Li
   override fun invoke(proxy: Any, method: Method, args: Array<out Any>?): Any? = try {
     val label = args?.getOrNull(0) as? String
     if (label != null && '.' in label && method.parameterTypes[0] == String::class.java) {
-      val index = prefixes[label] ?: rs.findColumn(label)
+      val index = prefixes[label] ?: label.lowercase().let { prefixes[it] ?: rs.findColumn(it) }
       if (method.name == "findColumn") index
       else ResultSet::class.java.getMethod(method.name, Integer.TYPE, *method.parameterTypes.drop(1).toTypedArray())
         .invoke(rs, index, *args.drop(1).toTypedArray())
@@ -98,8 +98,8 @@ private fun joinedPrefixes(md: ResultSetMetaData, aliases: List<String>): Map<St
   var prevTable = ""
   var groupFirst = ""
   for (i in 1..md.columnCount) {
-    val label = md.getColumnLabel(i)
-    val table = md.getTableName(i)
+    val label = md.getColumnLabel(i).lowercase()
+    val table = md.getTableName(i).lowercase()
     // new table on table name change; self-join repeats the same table name + first label
     if (joinCount == 0 || table.isNotEmpty() && table != prevTable) {
       joinCount++
