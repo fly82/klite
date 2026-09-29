@@ -32,9 +32,17 @@ internal fun ResultSet.populatePgColumnNameIndex(select: String) {
   val map = HashMap<String, Int>()
   val joinAliases = joinAliases(select)
   var joinCount = 0
+  var prevTable = ""
+  var groupFirst = ""
   for (i in 1..md.columnCount) {
     val label = md.getColumnLabel(i)
-    if (label == "id") joinCount++
+    val table = md.getTableName(i)
+    // new table on table name change; self-join repeats the same table name + first label
+    if (joinCount == 0 || table.isNotEmpty() && table != prevTable) {
+      joinCount++
+      prevTable = table
+      groupFirst = label
+    } else if (label == groupFirst) joinCount++
     map.putIfAbsent(label, i)
     if (joinCount > 1) map.putIfAbsent("${joinAliases.getOrNull(joinCount - 2) ?: joinCount}.$label", i)
   }
