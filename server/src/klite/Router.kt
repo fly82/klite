@@ -61,27 +61,38 @@ class Router(
   parsers: List<BodyParser>
 ): RouterConfig(registry, pathParamRegexer, decorators, renderers, parsers) {
   private val log = logger()
-  private val routesByMethod = mutableMapOf<RequestMethod, MutableList<Route>>()
-  val routes: List<Route> get() = routesByMethod.values.flatten()
+  private val routesByMethod = mutableMapOf<RequestMethod, MethodRoutes>()
+  val routes: List<Route> get() = routesByMethod.values.flatMap { it.static.values + it.dynamic }
 
   internal fun route(exchange: HttpExchange): Pair<Route, PathParams>? {
     val suffix = exchange.path.removePrefix(prefix)
-    return match(exchange.method, suffix)?.let {
-      it.first to PathParams(it.second.groups)
-    }
+    return match(exchange.method, suffix)
   }
 
-  private fun match(method: RequestMethod, path: String): Pair<Route, MatchResult>? {
-    routesByMethod[if (method == HEAD) GET else method]?.forEach { route ->
-      route.path.matchEntire(path)?.let { return route to it }
+  private fun match(method: RequestMethod, path: String): Pair<Route, PathParams>? =
+    match(routesByMethod[method], path) ?: if (method == HEAD) match(routesByMethod[GET], path) else null
+
+  private fun match(routes: MethodRoutes?, path: String): Pair<Route, PathParams>? {
+    if (routes == null) return null
+    routes.static[path]?.let { return it to PathParams.EMPTY }
+    for (route in routes.dynamic) {
+      route.path.matchEntire(path)?.let { return route to PathParams(it.groups) }
     }
     return null
   }
 
   fun add(route: Route) = route.apply {
     decorateWith(decorators)
-    routesByMethod.getOrPut(method) { mutableListOf() } += this
+    val routes = routesByMethod.getOrPut(method) { MethodRoutes() }
+    val pattern = path.pattern
+    if (pattern.none { it in "\\.[]{}()*+?^$|" }) routes.static.putIfAbsent(pattern, this)
+    else routes.dynamic += this
     log.info("$method $prefix$path")
+  }
+
+  private class MethodRoutes {
+    val static = mutableMapOf<String, Route>()
+    val dynamic = mutableListOf<Route>()
   }
 
   fun get(path: Regex, handler: Handler) = add(Route(GET, path, handler = handler))
