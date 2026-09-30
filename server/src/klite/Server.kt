@@ -13,8 +13,6 @@ import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.concurrent.thread
-import kotlin.reflect.KFunction
-import kotlin.reflect.full.primaryConstructor
 
 val Config.port: Int get() = optional("PORT", "8080").toInt()
 
@@ -33,7 +31,7 @@ class Server(
   val sessionStore: SessionStore? = registry.optional(),
   val notFoundHandler: Handler = { ErrorResponse(NotFound, path) },
   pathParamRegexer: PathParamRegexer = registry.require(),
-  private val httpExchangeCreator: KFunction<HttpExchange> = HttpExchange::class.primaryConstructor!!,
+  private val httpExchangeCreator: (OriginalHttpExchange, RouterConfig, SessionStore?, String) -> HttpExchange = ::HttpExchange,
 ): RouterConfig(registry, pathParamRegexer, decorators, registry.requireAll(), registry.requireAll()) {
   private val log = logger()
 
@@ -87,7 +85,7 @@ class Server(
     http.createContext(prefix) { ex ->
       val requestId = requestIdGenerator(ex.requestHeaders)
       currentThread().name = requestId
-      httpExchangeCreator.call(ex, config, sessionStore, requestId).handler()
+      httpExchangeCreator(ex, config, sessionStore, requestId).handler()
     }
   }
 

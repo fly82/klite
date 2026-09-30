@@ -11,6 +11,7 @@
 * email: ImapEmailReader introduced for reading incoming mail over IMAP
 * smtp: module was renamed to email, update references
 * server: slightly faster request routing
+* server: Server.httpExchangeCreator is now a lambda for better performance
 
 # 2.0.7
 * xml: @XmlPath now supports attribute predicates to filter elements by attribute value, e.g. `item[@type=something]`
