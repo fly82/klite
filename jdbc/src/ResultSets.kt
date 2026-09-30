@@ -112,4 +112,6 @@ private fun joinedPrefixes(md: ResultSetMetaData, aliases: List<String>): Map<St
 }
 
 private val joinRegex = "\\bjoin\\s+(\\w+?)(\\s+as)?(\\s+(\\w+?))?\\s+(on|using)\\b".toRegex(setOf(IGNORE_CASE, MULTILINE))
-internal fun joinAliases(select: String) = joinRegex.findAll(select).map { it.groupValues[4].trimToNull() ?: it.groupValues[1] }.toList()
+internal fun joinAliases(select: String) =
+  if (!select.contains("join", ignoreCase = true)) emptyList()
+  else joinRegex.findAll(select).map { it.groupValues[4].trimToNull() ?: it.groupValues[1] }.toList()
