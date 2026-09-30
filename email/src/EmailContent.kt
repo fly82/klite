@@ -12,7 +12,7 @@ open class EmailContent(val lang: String, val labelKey: String, val substitution
   open val subject get() = translate(lang, "emails.$labelKey.subject", substitutions)
   open val body get() = translateOrNull(lang, "emails.$labelKey.body", substitutions)
   open val bodyHtml get() = translateOrNull(lang, "emails.$labelKey.bodyHtml", substitutions)
-  open val actionLabel get() = translate(lang, "emails.$labelKey.action", substitutions)
+  open val actionLabel get() = translateOrNull(lang, "emails.$labelKey.action", substitutions)
   open val from: Named? get() = null
 
   override fun equals(other: Any?) = other is EmailContent && javaClass == other.javaClass && lang == other.lang && labelKey == other.labelKey && substitutions == other.substitutions && actionUrl == other.actionUrl
@@ -59,11 +59,11 @@ ${contentHtml()}
         <div style="margin-bottom: 1em; white-space: pre-line">${bodyHtml ?: +body}</div>
         ${actionUrl?.let {"""
           <a href="$it" style="background: rgb(17, 24, 39); font-weight: bold; text-decoration: none; text-align: center; padding: 1em 2em; color: white; border-radius: 4px; margin-bottom: 1em; display: block">
-            $actionLabel
+            ${+(actionLabel ?: translate(lang, "title"))}
           </a>
         """} ?: ""}
         <p style="margin: 0; font-size: 0.8em; color: rgb(107, 114, 128); text-align: center">
-          ${translate(lang, "title")}
+          ${+translate(lang, "title")}
         </p>
       </td>
     </tr>
