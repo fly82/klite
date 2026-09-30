@@ -3,6 +3,8 @@ package klite.i18n
 import klite.HttpExchange
 import klite.json.JsonMapper
 import klite.json.parse
+import klite.logger
+import klite.warn
 
 typealias Translations = Map<String, Any>
 private typealias MutableTranslations = MutableMap<String, Any>
@@ -14,14 +16,18 @@ object Lang {
 
   val available: List<String> = load("langs.json")
   private val translations by lazy { loadTranslations() }
+  private val log = logger()
 
   fun takeIfAvailable(lang: String?) = lang?.takeIf { available.contains(it) }
   fun ensureAvailable(requestedLang: String?) = takeIfAvailable(requestedLang) ?: available.first()
 
   fun translations(requestedLang: String?): Translations = translations[ensureAvailable(requestedLang)]!!
 
-  fun translate(lang: String, key: String, substitutions: Map<String, String> = emptyMap()) =
+  fun translateOrNull(lang: String, key: String, substitutions: Map<String, String> = emptyMap()) =
     translations(lang).invoke(key, substitutions)
+
+  fun translate(lang: String, key: String, substitutions: Map<String, String> = emptyMap()) =
+    translateOrNull(lang, key, substitutions) ?: key.also { log.warn("Missing translation for '$key' in '$lang'") }
 
   private fun loadTranslations(): Map<String, Translations> {
     val loaded = available.associateWith { lang -> mutableMapOf<String, Any>().also {
@@ -52,10 +58,10 @@ private fun Translations.resolve(key: String) =
 
 @Suppress("UNCHECKED_CAST")
 fun Translations.getMany(key: String) = resolve(key) as? Map<String, String> ?: emptyMap()
-operator fun Translations.invoke(key: String) = resolve(key) as? String ?: key
-operator fun Translations.invoke(key: String, substitutions: Map<String, String> = emptyMap()): String {
+operator fun Translations.invoke(key: String) = resolve(key) as? String?
+operator fun Translations.invoke(key: String, substitutions: Map<String, String> = emptyMap()): String? {
   var result = invoke(key)
-  substitutions.forEach { result = result.replace("{${it.key}}", it.value) }
+  substitutions.forEach { result = result?.replace("{${it.key}}", it.value) }
   return result
 }
 

@@ -6,6 +6,8 @@
 * jdbc: remove auto-fallback to `docker-compose` from `docker compose`, use `DOCKER_COMPOSE` env var to override
 * jdbc: DBMigrator skips unchanged .sql files via a combined stamp + contexts stored in db_changelog comment (jar CRC-32 or lastModified)
 * ai: AIClient can now accept multiple image or document files as an input
+* i18n: added `Lang.translateOrNull()`
+* email: EmailContent.bodyHtml support added
 * email: ImapEmailReader introduced for reading incoming mail over IMAP
 * smtp: module was renamed to email, update references
 * server: slightly faster request routing

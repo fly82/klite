@@ -3,13 +3,15 @@ package klite.email
 import klite.MimeTypes
 import klite.html.unaryPlus
 import klite.i18n.Lang.translate
+import klite.i18n.Lang.translateOrNull
 import org.intellij.lang.annotations.Language
 import java.net.URI
 import java.util.*
 
 open class EmailContent(val lang: String, val labelKey: String, val substitutions: Map<String, String> = emptyMap(), val actionUrl: URI? = null) {
   open val subject get() = translate(lang, "emails.$labelKey.subject", substitutions)
-  open val body get() = translate(lang, "emails.$labelKey.body", substitutions)
+  open val body get() = translateOrNull(lang, "emails.$labelKey.body", substitutions)
+  open val bodyHtml get() = translateOrNull(lang, "emails.$labelKey.bodyHtml", substitutions)
   open val actionLabel get() = translate(lang, "emails.$labelKey.action", substitutions)
   open val from: Named? get() = null
 
@@ -54,7 +56,7 @@ ${contentHtml()}
     <tr>
       <td style="padding: 2em; background: white; color: rgb(17, 24, 39)">
         <h1 style="margin: 1em 0; font-size: 1.625em; line-height: 1.25; font-weight: bold">${+subject}</h1>
-        <div style="margin-bottom: 1em; white-space: pre-line">${+body}</div>
+        <div style="margin-bottom: 1em; white-space: pre-line">${bodyHtml ?: +body}</div>
         ${actionUrl?.let {"""
           <a href="$it" style="background: rgb(17, 24, 39); font-weight: bold; text-decoration: none; text-align: center; padding: 1em 2em; color: white; border-radius: 4px; margin-bottom: 1em; display: block">
             $actionLabel
