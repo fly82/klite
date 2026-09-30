@@ -9,6 +9,12 @@ import java.net.URI
 import java.util.*
 
 open class EmailContent(val lang: String, val labelKey: String, val substitutions: Map<String, String> = emptyMap(), val actionUrl: URI? = null) {
+  companion object {
+    var logoUrl: URI? = null
+    var bgCssColor = "rgb(243, 244, 246)"
+    var primaryCssColor = "rgb(17, 24, 39)"
+  }
+
   open val subject get() = translate(lang, "emails.$labelKey.subject", substitutions)
   open val body get() = translateOrNull(lang, "emails.$labelKey.body", substitutions)
   open val bodyHtml get() = translateOrNull(lang, "emails.$labelKey.bodyHtml", substitutions)
@@ -50,24 +56,27 @@ ${contentHtml()}
 """
 
   @Language("html")
-  protected open fun contentHtml() = """
-<div role="article" aria-roledescription="email" lang="$lang" style="background-color: rgb(243, 244, 246); padding: 1em">
+  protected open fun contentHtml() = translate(lang, "title").let { title -> """
+<div role="article" aria-roledescription="email" lang="$lang" style="background-color: $bgCssColor; padding: 1em">
   <table role="presentation" style="width: 94%; max-width: 480px; margin: 0 auto">
     <tr>
-      <td style="padding: 2em; background: white; color: rgb(17, 24, 39)">
+      <td style="padding: 2em; background: white; color: $primaryCssColor">
+        ${logoUrl?.let {"""
+          <div><img height="32" alt="${+title}" src="$it"></div>
+        """} ?: ""}
         <h1 style="margin: 1em 0; font-size: 1.625em; line-height: 1.25; font-weight: bold">${+subject}</h1>
         <div style="margin-bottom: 1em; white-space: pre-line">${bodyHtml ?: +body}</div>
         ${actionUrl?.let {"""
-          <a href="$it" style="background: rgb(17, 24, 39); font-weight: bold; text-decoration: none; text-align: center; padding: 1em 2em; color: white; border-radius: 4px; margin-bottom: 1em; display: block">
-            ${+(actionLabel ?: translate(lang, "title"))}
+          <a href="$it" style="background: $primaryCssColor; font-weight: bold; text-decoration: none; text-align: center; padding: 1em 2em; color: white; border-radius: 4px; margin-bottom: 1em; display: block">
+            ${+(actionLabel ?: title)}
           </a>
         """} ?: ""}
         <p style="margin: 0; font-size: 0.8em; color: rgb(107, 114, 128); text-align: center">
-          ${+translate(lang, "title")}
+          ${+title}
         </p>
       </td>
     </tr>
   </table>
 </div>
-"""
+""" }
 }
