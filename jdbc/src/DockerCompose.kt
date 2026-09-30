@@ -12,15 +12,10 @@ object DockerCompose {
   private val log = logger()
   private var compose = Config.optional("DOCKER_COMPOSE", "docker compose")
 
-  fun run(command: String): Int = try {
+  fun run(command: String): Int {
     val fullCommand = "$compose $command"
     log.info("$fullCommand in ${File(".").absolutePath}")
-    ProcessBuilder(fullCommand.split(' ')).redirectErrorStream(true).redirectOutput(INHERIT).start().waitFor()
-  } catch (e: Exception) {
-    if (Config.optional("DOCKER_COMPOSE") == null) {
-      compose = "docker-compose"
-      run(command)
-    } else throw e
+    return ProcessBuilder(fullCommand.split(' ')).redirectErrorStream(true).redirectOutput(INHERIT).start().waitFor()
   }
 
   fun up(service: String, wait: Boolean = true) {

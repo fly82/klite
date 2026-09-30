@@ -3,6 +3,7 @@
 * json: `toJsonSchema()` now describes Map key/value types using propertyNames/additionalProperties
 * json: support for ByteArray in TSGenerator test data generation
 * jdbc: `rs.getString("alias.field")` for joined tables now works on all databases and with tables without an id column
+* jdbc: remove auto-fallback to `docker-compose` from `docker compose`, use `DOCKER_COMPOSE` env var to override
 * ai: AIClient can now accept multiple image or document files as an input
 * email: ImapEmailReader introduced for reading incoming mail over IMAP
 * smtp: module was renamed to email, update references
