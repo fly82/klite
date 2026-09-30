@@ -6,6 +6,7 @@
 * ai: AIClient can now accept multiple image or document files as an input
 * email: ImapEmailReader introduced for reading incoming mail over IMAP
 * smtp: module was renamed to email, update references
+* server: slightly faster request routing
 
 # 2.0.7
 * xml: @XmlPath now supports attribute predicates to filter elements by attribute value, e.g. `item[@type=something]`

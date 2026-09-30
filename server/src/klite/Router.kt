@@ -61,8 +61,8 @@ class Router(
   parsers: List<BodyParser>
 ): RouterConfig(registry, pathParamRegexer, decorators, renderers, parsers) {
   private val log = logger()
-  val routes: List<Route>
-    field = mutableListOf<Route>()
+  private val routesByMethod = mutableMapOf<RequestMethod, MutableList<Route>>()
+  val routes: List<Route> get() = routesByMethod.values.flatten()
 
   internal fun route(exchange: HttpExchange): Pair<Route, PathParams>? {
     val suffix = exchange.path.removePrefix(prefix)
@@ -72,15 +72,15 @@ class Router(
   }
 
   private fun match(method: RequestMethod, path: String): Pair<Route, MatchResult>? {
-    for (route in routes) {
-      if (method == route.method || method == HEAD && route.method == GET)
-        route.path.matchEntire(path)?.let { return route to it }
+    routesByMethod[if (method == HEAD) GET else method]?.forEach { route ->
+      route.path.matchEntire(path)?.let { return route to it }
     }
     return null
   }
 
   fun add(route: Route) = route.apply {
-    routes += decorateWith(decorators)
+    decorateWith(decorators)
+    routesByMethod.getOrPut(method) { mutableListOf() } += this
     log.info("$method $prefix$path")
   }
 
