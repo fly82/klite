@@ -18,6 +18,12 @@ class ChangeSetFileReaderTest {
     expect(dbChangelog.checksum).toEqual(-1707762516)
   }
 
+  @Test fun `combinedCheck is stable`() {
+    val reader = ChangeSetFileReader("migrator/test.sql")
+    expect(reader.combinedStamp()).toEqual(reader.combinedStamp())
+    expect(reader.combinedStamp() != ChangeSetFileReader("migrator/init.sql").combinedStamp()).toEqual(true)
+  }
+
   @Test fun `args and substitutions`() {
     Config["APP_PASS"] = "some pass"
     val list = ChangeSetFileReader("migrator/test.sql").toList()

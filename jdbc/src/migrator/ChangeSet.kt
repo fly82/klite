@@ -47,4 +47,7 @@ class ChangeSetRepository(db: DataSource): BaseCrudRepository<ChangeSet, String>
   override val defaultOrder = ""
   override fun ChangeSet.persister() = toValuesSkipping(ChangeSet::separator, ChangeSet::sql, ChangeSet::onChange, ChangeSet::onFail)
   override fun ResultSet.mapper() = ChangeSet(getString("id"), "", getString("context"), filePath = getString("filepath"), checksum = getLong("checksum"))
+
+  fun lastCheck(): String? = db.query("select obj_description('$table'::regclass)") { getString(1) }.firstOrNull()
+  fun storeCheck(check: String) = db.exec("comment on table $table is '${check.replace("'", "''")}'")
 }

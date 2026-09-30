@@ -6,6 +6,8 @@ import klite.info
 import klite.logger
 import java.io.FileNotFoundException
 import java.io.Reader
+import java.net.JarURLConnection
+import java.net.URL
 import kotlin.reflect.full.primaryConstructor
 
 /**
@@ -31,7 +33,28 @@ open class ChangeSetFileReader(
   override fun iterator() = readAll().iterator()
   private fun readAll(): Sequence<ChangeSet> = sequence { filePaths.forEach { readFile(it) } }
 
-  open fun resolveFile(path: String) = Thread.currentThread().contextClassLoader.getResourceAsStream(path) ?: throw FileNotFoundException("$path not found in classpath")
+  open fun resolve(path: String): URL = Thread.currentThread().contextClassLoader.getResource(path) ?: throw FileNotFoundException("$path not found in classpath")
+  open fun resolveFile(path: String) = resolve(path).openStream()
+
+  /** Jar entry CRC-32 if available without reading content, otherwise file lastModified */
+  open fun fileCheck(path: String): Long = resolve(path).openConnection().let { c ->
+    (c as? JarURLConnection)?.jarEntry?.crc?.takeIf { it >= 0L } ?: c.lastModified
+  }
+
+  /** Combined stamp of all files including `--include`d ones, without parsing changesets */
+  fun combinedStamp(): Long {
+    val files = sortedMapOf<String, Long>()
+    fun walk(path: String) {
+      if (path in files) return
+      files[path] = fileCheck(path)
+      resolve(path).openStream().bufferedReader().forEachLine { line ->
+        val trimmed = line.trim()
+        if (trimmed.startsWith("--include ")) walk(trimmed.substringAfter("--include ").trim())
+      }
+    }
+    filePaths.forEach(::walk)
+    return files.entries.fold(0L) { r, e -> r * 89 + e.key.hashCode() * 31 + e.value }
+  }
 
   private suspend fun SequenceScope<ChangeSet>.readFile(path: String) = resolveFile(path).reader().use { read(it, path) }
 

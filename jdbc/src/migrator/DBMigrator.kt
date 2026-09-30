@@ -34,13 +34,26 @@ open class DBMigrator(
   }
 
   private fun doMigrate(): Unit = tx.attachToThread().use {
+    val check = (changeSets as? ChangeSetFileReader)?.combinedStamp()
+    if (check != null && unchanged("$contexts:$check"))
+      return log.info("Skipping unchanged changesets ($check)")
     try {
       log.info("Locking"); lock()
-      readHistory()
-      changeSets.forEach(::run)
+      val pending = changeSets.toList()
+      if (pending.isNotEmpty()) {
+        readHistory()
+        pending.forEach(::run)
+      }
+      if (check != null) repository.storeCheck("$contexts:$check")
     } finally {
       unlock(); log.info("Unlocked")
     }
+  }
+
+  private fun unchanged(check: String): Boolean = try {
+    repository.lastCheck() == check
+  } catch (e: SQLException) {
+    log.warn(e.toString()); tx.rollback(); false
   }
 
   private fun readHistory(): Unit = try {

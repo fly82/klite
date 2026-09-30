@@ -4,6 +4,7 @@
 * json: support for ByteArray in TSGenerator test data generation
 * jdbc: `rs.getString("alias.field")` for joined tables now works on all databases and with tables without an id column
 * jdbc: remove auto-fallback to `docker-compose` from `docker compose`, use `DOCKER_COMPOSE` env var to override
+* jdbc: DBMigrator skips unchanged .sql files via a combined stamp + contexts stored in db_changelog comment (jar CRC-32 or lastModified)
 * ai: AIClient can now accept multiple image or document files as an input
 * email: ImapEmailReader introduced for reading incoming mail over IMAP
 * smtp: module was renamed to email, update references
