@@ -45,7 +45,7 @@ class JsonParser(private val reader: Reader, private val opts: JsonMapper) {
 
   private fun readEscapedChar() = when (val c = next()) {
     'n' -> '\n'; 'r' -> '\r'; 't' -> '\t'; 'b' -> '\b'; 'f' -> '\u000C'
-    'u' -> (1..4).map { next() }.joinToString("").toInt(16).toChar()
+    'u' -> (1..4).fold(0) { code, _ -> (code shl 4) or next().digitToInt(16) }.toChar()
     else -> c
   }
 
