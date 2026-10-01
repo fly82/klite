@@ -17,12 +17,15 @@ import kotlin.reflect.KType
 import kotlin.time.Duration.Companion.seconds
 
 // https://platform.openai.com/docs/api-reference/making-requests
-open class OpenAIClient(httpClient: HttpClient, val params: Node = emptyMap()): AIClient {
-  val model = Config["OPENAI_MODEL"]
-  private val auth = "Bearer " + Config["OPENAI_API_KEY"]
-  private val http = JsonHttpClient(
-    Config.optional("OPENAI_URL", "https://api.openai.com/v1"), http = httpClient,
-    json = JsonMapper(keys = SnakeCase, values = instantAsInt),
+open class OpenAIClient(
+  httpClient: HttpClient,
+  baseUrl: String = Config.optional("OPENAI_URL", "https://api.openai.com/v1"),
+  apiKey: String = Config["OPENAI_API_KEY"],
+  val model: String = Config["OPENAI_MODEL"],
+  val params: Node = emptyMap()
+): AIClient {
+  private val auth = "Bearer " + apiKey
+  private val http = JsonHttpClient(baseUrl, http = httpClient, json = JsonMapper(keys = SnakeCase, values = instantAsInt),
     reqModifier = { header("Authorization", auth).timeout(30.seconds) })
 
   override fun query(input: String, vararg fileUrl: URI, prevResponseId: String?, params: Node): AIClient.Response =

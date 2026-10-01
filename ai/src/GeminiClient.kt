@@ -16,19 +16,21 @@ import java.time.Instant
 import kotlin.time.Duration.Companion.seconds
 
 // https://aistudio.google.com/prompts/new_chat
-open class GeminiClient(httpClient: HttpClient, val params: Node = emptyMap()): AIClient {
-  val model = Config["GEMINI_MODEL"]
-  private val key = Config["GEMINI_API_KEY"]
-  private val http = JsonHttpClient(
-    Config.optional("GEMINI_URL", "https://generativelanguage.googleapis.com/v1beta"), http = httpClient,
-    json = JsonMapper(keys = SnakeCase),
+open class GeminiClient(
+  httpClient: HttpClient,
+  baseUrl: String = Config.optional("GEMINI_URL", "https://generativelanguage.googleapis.com/v1beta"),
+  val apiKey: String = Config["GEMINI_API_KEY"],
+  val model: String = Config["GEMINI_MODEL"],
+  val params: Node = emptyMap()
+): AIClient {
+  private val http = JsonHttpClient(baseUrl, http = httpClient, json = JsonMapper(keys = SnakeCase),
     reqModifier = { timeout(30.seconds) })
 
   override fun query(input: String, vararg fileUrl: URI, prevResponseId: String?, params: Node): AIClient.Response =
     query(toInput(input, fileUrl), params, prevResponseId).toTextResponse()
 
   override fun stream(input: String, vararg fileUrl: URI, params: Node): Sequence<String> =
-    http.postSSE<Node>("/interactions?key=$key", mapOf("model" to model, "input" to toInput(input, fileUrl), "stream" to true) + this.params + params, eventName = "step.delta").mapNotNull { node ->
+    http.postSSE<Node>("/interactions?key=$apiKey", mapOf("model" to model, "input" to toInput(input, fileUrl), "stream" to true) + this.params + params, eventName = "step.delta").mapNotNull { node ->
       node.at("delta").textOrNull("text")
     }
 
