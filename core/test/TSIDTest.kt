@@ -33,6 +33,10 @@ class TSIDTest {
     expect(ids.size).toEqual(1000000)
   }
 
+  @Test fun unboxInline() {
+    expect(Id(123).unboxInline()).toEqual(123L)
+  }
+
   @Test
   fun deterministic() {
     TSID.deterministic = AtomicLong(123123123)

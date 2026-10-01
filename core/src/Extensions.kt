@@ -1,7 +1,10 @@
 package klite
 
 import java.io.OutputStream
+import java.lang.invoke.MethodHandle
+import java.lang.invoke.MethodHandles
 import java.util.*
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.reflect.KClass
 import kotlin.reflect.KType
 import kotlin.time.Duration
@@ -17,7 +20,11 @@ fun <K, V> notNullValues(vararg pairs: Pair<K, V?>?) = pairs.filter { it?.second
 fun <K, V> mapOfNotNull(vararg pairs: Pair<K, V?>?) = notNullValues(*pairs).toMap()
 
 val KType.java get() = (classifier as KClass<*>).java
-fun Any.unboxInline() = javaClass.getMethod("unbox-impl").invoke(this)
+
+private val unboxMethods = ConcurrentHashMap<Class<*>, MethodHandle>()
+fun Any.unboxInline() = unboxMethods.getOrPut(javaClass) {
+  MethodHandles.lookup().unreflect(javaClass.getMethod("unbox-impl"))
+}.invoke(this)
 
 fun UUID(uuid: String) = UUID.fromString(uuid)
 val String.uuid: UUID get() = UUID(this)
