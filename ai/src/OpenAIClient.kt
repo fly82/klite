@@ -26,6 +26,7 @@ open class OpenAIClient(
 ): AIClient {
   private val auth = "Bearer " + apiKey
   private val http = JsonHttpClient(baseUrl, http = httpClient, json = JsonMapper(keys = SnakeCase, values = instantAsInt),
+    maxLoggedLen = Config.optional("AI_LOG_LEN", "20000").toInt(),
     reqModifier = { header("Authorization", auth).timeout(30.seconds) })
 
   override fun query(input: String, vararg fileUrl: URI, prevResponseId: String?, params: Node): AIClient.Response =

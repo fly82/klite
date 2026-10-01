@@ -24,6 +24,7 @@ open class GeminiClient(
   val params: Node = emptyMap()
 ): AIClient {
   private val http = JsonHttpClient(baseUrl, http = httpClient, json = JsonMapper(keys = SnakeCase),
+    maxLoggedLen = Config.optional("AI_LOG_LEN", "20000").toInt(),
     reqModifier = { timeout(30.seconds) })
 
   override fun query(input: String, vararg fileUrl: URI, prevResponseId: String?, params: Node): AIClient.Response =
@@ -43,7 +44,7 @@ open class GeminiClient(
   } else input
 
   fun query(input: Any /* String | List<Content | Step> */, params: Node = emptyMap(), prevInteractionId: String? = null): Response =
-    http.post("/interactions?key=$key", mapOf(
+    http.post("/interactions?key=$apiKey", mapOf(
       "model" to model,
       "input" to input,
       "generation_config" to GenerationConfig(),
