@@ -129,11 +129,11 @@ fun DB.insert(@Language("SQL", prefix = selectFrom) table: String, values: Value
 
 @IgnorableReturnValue
 fun DB.insertBatch(@Language("SQL", prefix = selectFrom) table: String, values: Iterable<ValueMap>, suffix: String = ""): IntArray {
-  val keyValuesToSet = values.map { it.filter { it.value !is GeneratedKey<*> } }
-  val valuesToSet = keyValuesToSet.map { setValues(it) }
-  val first = keyValuesToSet.firstOrNull() ?: return intArrayOf()
-  val hasGeneratedKeys = first.size != values.first().size
-  return execBatch(insertExpr(table, first) + suffix, valuesToSet, if (hasGeneratedKeys) RETURN_GENERATED_KEYS else NO_GENERATED_KEYS) {
+  val first = values.firstOrNull() ?: return intArrayOf()
+  val hasGeneratedKeys = first.values.any { it is GeneratedKey<*> }
+  val keysToSet = if (hasGeneratedKeys) first.filterValues { it !is GeneratedKey<*> } else first
+  val valuesToSet = values.map { setValues(if (hasGeneratedKeys) it.filterValues { v -> v !is GeneratedKey<*> } else it) }
+  return execBatch(insertExpr(table, keysToSet) + suffix, valuesToSet, if (hasGeneratedKeys) RETURN_GENERATED_KEYS else NO_GENERATED_KEYS) {
     if (hasGeneratedKeys) processGeneratedKeys(values)
   }
 }
@@ -202,13 +202,15 @@ internal fun whereValueConvert(v: Any?) = if (isEmptyCollection(v)) emptyArray e
   else -> v
 }
 
-internal fun DB.setExpr(values: ValueMap) = values.entries.map { (k, v) -> k to v }.join(", ")
+internal fun DB.setExpr(values: ValueMap) = values.entries.joinToString(", ") { (k, v) -> valueExpr(k, v) }
 internal fun DB.whereExpr(where: Where) = if (where.isEmpty()) "" else " where " + where.join(" and ")
 
 context(db: DB)
-internal fun Iterable<ColValue>.join(separator: String) = joinToString(separator) { (k, v) ->
+internal fun Iterable<ColValue>.join(separator: String) = joinToString(separator) { (k, v) -> db.valueExpr(k, v) }
+
+private fun DB.valueExpr(k: ColName, v: Any?): String {
   val n = name(k)
-  if (v is SqlExpr) v.expr(db, n) else q(n) + "=" + db.placeholder(v)
+  return if (v is SqlExpr) v.expr(this, n) else q(n) + "=" + placeholder(v)
 }
 
 internal fun name(key: ColName) = when(key) {
