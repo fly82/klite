@@ -9,7 +9,7 @@
 * i18n: added `Lang.translateOrNull()`
 * email: EmailContent.bodyHtml support added
 * email: ImapEmailReader introduced for reading incoming mail over IMAP
-* smtp: module was renamed to email, update references
+* smtp: module was renamed to *email*, update references
 * server: slightly faster request routing
 * server: Server.httpExchangeCreator is now a lambda for better performance
 

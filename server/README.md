@@ -137,7 +137,7 @@ Proxies will forward some standard headers, that your app will need to understan
 * To support `X-Forwarded-For` and the like, pass [*XForwardedHttpExchange*](src/klite/XForwardedHttpExchange.kt) constructor to the Server
 
 ```kotlin
-  Server(requestIdGenerator = XRequestIdGenerator(), httpExchangeCreator = XForwardedHttpExchange::class.primaryConstructor!!)
+  Server(requestIdGenerator = XRequestIdGenerator(), httpExchangeCreator = ::XForwardedHttpExchange)
 ```
 
 Enable these only if you are sure that you will be running behind a trusted proxy in production.
