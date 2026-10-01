@@ -10,6 +10,12 @@ import java.sql.ResultSet
 class ValuesTest {
   @Test fun create() {
     val rs = mockk<ResultSet> {
+      every { findColumn(any()) } answers {
+        when (firstArg<String>()) {
+          "hello", "world", "list", "colName" -> 1
+          else -> throw java.sql.SQLException("not found")
+        }
+      }
       every { getObject("hello") } returns "Hello"
       every { getInt("world") } returns 42
       every { wasNull() } returns false

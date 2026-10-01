@@ -4,14 +4,19 @@ import klite.Decimal
 import klite.d
 import klite.trimToNull
 import klite.uuid
+import java.lang.invoke.MethodHandle
+import java.lang.invoke.MethodHandles
 import java.lang.reflect.InvocationHandler
 import java.lang.reflect.InvocationTargetException
 import java.lang.reflect.Method
 import java.lang.reflect.Proxy
 import java.sql.ResultSet
 import java.sql.ResultSetMetaData
+import java.sql.SQLException
 import java.time.Instant
 import java.time.Period
+import java.util.*
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.reflect.KType
 import kotlin.reflect.typeOf
 import kotlin.text.RegexOption.IGNORE_CASE
@@ -31,7 +36,13 @@ inline operator fun <reified T> ResultSet.get(column: String): T = get(column, t
 fun <T> ResultSet.getOptional(column: String, type: KType): Result<T> = runCatching { get(column, type) }
 inline fun <reified T> ResultSet.getOptional(column: String): Result<T> = getOptional(column, typeOf<T>())
 
-private val pgObjectGetValue: java.lang.reflect.Method? = runCatching {
+private val findColumnCache = Collections.synchronizedMap(WeakHashMap<ResultSet, MutableMap<String, Int>>())
+
+fun ResultSet.findColumnOrNull(column: String): Int? =
+  findColumnCache.getOrPut(this) { ConcurrentHashMap() }
+    .getOrPut(column) { try { findColumn(column) } catch (e: SQLException) { -1 } }.takeIf { it > 0 }
+
+private val pgObjectGetValue: Method? = runCatching {
   Class.forName("org.postgresql.util.PGobject").getMethod("getValue")
 }.getOrNull()
 
@@ -77,6 +88,14 @@ internal fun ResultSet.withJoinPrefixes(select: String): ResultSet {
 }
 
 private class PrefixedColumns(private val rs: ResultSet, private val aliases: List<String>): InvocationHandler {
+  companion object {
+    private val intHandles = ConcurrentHashMap<Method, MethodHandle>()
+
+    private fun intHandle(method: Method): MethodHandle = intHandles.getOrPut(method) {
+      MethodHandles.lookup().unreflect(ResultSet::class.java.getMethod(method.name, Integer.TYPE, *method.parameterTypes.drop(1).toTypedArray()))
+    }
+  }
+
   private val prefixes by lazy { joinedPrefixes(rs.metaData, aliases) }
 
   override fun invoke(proxy: Any, method: Method, args: Array<out Any>?): Any? = try {
@@ -84,8 +103,11 @@ private class PrefixedColumns(private val rs: ResultSet, private val aliases: Li
     if (label != null && '.' in label && method.parameterTypes[0] == String::class.java) {
       val index = prefixes[label] ?: label.lowercase().let { prefixes[it] ?: rs.findColumn(it) }
       if (method.name == "findColumn") index
-      else ResultSet::class.java.getMethod(method.name, Integer.TYPE, *method.parameterTypes.drop(1).toTypedArray())
-        .invoke(rs, index, *args.drop(1).toTypedArray())
+      else {
+        val handle = intHandle(method)
+        if (method.parameterCount == 1) handle.invoke(rs, index)
+        else handle.invokeWithArguments(rs, index, *args.drop(1).toTypedArray())
+      }
     } else method.invoke(rs, *(args ?: emptyArray()))
   } catch (e: InvocationTargetException) {
     throw e.targetException

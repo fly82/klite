@@ -30,7 +30,7 @@ fun <T: Any> ResultSet.create(type: KClass<T>, vararg provided: PropValue<T, *>,
     if (extraArgs.containsKey(it.name)) extraArgs[it.name!!]
     else if (prop != null && meta[it.name]?.isJson == true) getJsonOrNull(column, it.type)
     else if (prop != null && meta[it.name]?.isFlatten == true) create(it.type.classifier as KClass<T>, *provided, columnPrefix = columnPrefix)
-    else if (it.isOptional) getOptional<T>(column, it.type).getOrDefault(AbsentValue)
+    else if (it.isOptional && findColumnOrNull(column) == null) AbsentValue
     else get(column, it.type)
   }
 }

@@ -5,6 +5,7 @@ import ch.tutteli.atrium.api.fluent.en_GB.toEqual
 import ch.tutteli.atrium.api.verbs.expect
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.verify
 import org.junit.jupiter.api.Test
 import org.postgresql.util.PGobject
 import java.sql.ResultSet
@@ -16,6 +17,22 @@ class ResultSetsTest {
   @Test fun getObjectUnwrapped() {
     every { rs.getObject("x") } returns PGobject().apply { value = "citext" }
     expect(rs.getObjectUnwrapped("x")).toEqual("citext")
+  }
+
+  @Test fun `findColumnOrNull caches lookups`() {
+    every { rs.findColumn("id") } returns 1
+    every { rs.findColumn("missing") } throws java.sql.SQLException("not found")
+
+    expect(rs.findColumnOrNull("id")).toEqual(1)
+    expect(rs.findColumnOrNull("missing")).toEqual(null)
+    expect(rs.findColumnOrNull("id")).toEqual(1)
+    verify(exactly = 1) { rs.findColumn("id") }
+    verify(exactly = 1) { rs.findColumn("missing") }
+  }
+
+  @Test fun `getOptional without column`() {
+    every { rs.findColumn("missing") } throws java.sql.SQLException("not found")
+    expect(rs.getOptional<String>("missing").isSuccess).toEqual(false)
   }
 
   @Test fun joinAliases() {
