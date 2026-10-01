@@ -31,6 +31,13 @@ class CacheTest {
 //  expect(cache["key"]).toBeTheInstance(data) - this line is flaky in Github Actions
   }}
 
+  @Test fun `getOrSet recomputes expired`() { Cache<String, LocalDate>(10.milliseconds, autoRemoveExpired = false).use { cache ->
+    cache["key"] = data
+    expect(cache.getOrSet("key") { LocalDate.MAX }).toBeTheInstance(data)
+    Thread.sleep(12)
+    expect(cache.getOrSet("key") { LocalDate.MAX }).toBeTheInstance(LocalDate.MAX)
+  }}
+
   @Test fun prolongOnAccess() { Cache<String, LocalDate>(10.milliseconds, prolongOnAccess = true, keepAlive = mockk(relaxed = true)).use { cache ->
     cache["key"] = data
     Thread.sleep(7)

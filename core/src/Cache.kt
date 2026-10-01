@@ -18,8 +18,8 @@ class Cache<K: Any, V>(val expiration: Duration, autoRemoveExpired: Boolean = tr
   } else null
 
   operator fun get(key: K) = entries[key]?.takeIf { !it.isExpired() }?.access()
-  operator fun set(key: K, value: V) { entries.put(key, Entry(value)) }
-  inline fun getOrSet(key: K, compute: (key: K) -> V) = entries.getOrPut(key) { Entry(compute(key)) }.access()
+  operator fun set(key: K, value: V) { entries[key] = Entry(value) }
+  fun getOrSet(key: K, compute: (key: K) -> V) = (entries[key]?.takeIf { !it.isExpired() } ?: Entry(compute(key)).also { entries[key] = it }).access()
   fun isEmpty() = entries.isEmpty()
 
   fun removeExpired() {
