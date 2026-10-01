@@ -16,4 +16,14 @@ class RouteTest {
     val annotated = Route(RequestMethod.GET, "".toRegex(), listOf(Public())) {}
     expect(annotated.findAnnotation<Public>()).notToEqualNull()
   }
+
+  @Test fun pathParams() {
+    val route = Route(RequestMethod.GET, PathParamRegexer().from("/hello/:name/:id")) {}
+    val match = route.path.matchEntire("/hello/world/42")!!
+    val params = PathParams(match.groups, route.namedGroups)
+    expect(params["name"]).toEqual("world")
+    expect(params["id"]).toEqual("42")
+    expect(params["missing"]).toEqual(null)
+    expect(params.containsKey("missing")).toEqual(false)
+  }
 }

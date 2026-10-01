@@ -76,7 +76,7 @@ class Router(
     if (routes == null) return null
     routes.static[path]?.let { return it to PathParams.EMPTY }
     for (route in routes.dynamic) {
-      route.path.matchEntire(path)?.let { return route to PathParams(it.groups) }
+      route.path.matchEntire(path)?.let { return route to PathParams(it.groups, route.namedGroups) }
     }
     return null
   }
@@ -121,6 +121,7 @@ enum class RequestMethod(val hasBody: Boolean = true) {
 open class Route(val method: RequestMethod, val path: Regex, annotations: List<Annotation> = emptyList(), val handler: Handler): KAnnotatedElement {
   internal var decoratedHandler: Handler = handler
   override val annotations = anonymousHandlerAnnotations(handler) + annotations
+  internal val namedGroups = path.toPattern().namedGroups()
 
   internal fun decorateWith(decorators: List<Decorator>) = this.also {
     decoratedHandler = decorators.wrap(decoratedHandler)
@@ -139,13 +140,13 @@ open class PathParamRegexer(private val paramConverter: Regex = "(^|/):([^/]+)".
   open fun toOpenApi(path: Regex) = path.pattern.replace("\\(\\?<(.+?)>.*?\\)".toRegex(), "{$1}")
 }
 
-class PathParams(private val groups: MatchGroupCollection?): Params {
+class PathParams(private val groups: MatchGroupCollection?, private val namedGroups: Map<String, Int> = emptyMap()): Params {
   override val entries get() = throw NotImplementedError()
   override val keys get() = throw NotImplementedError()
   override val values get() = groups?.map { it?.value } ?: emptyList()
   override val size get() = groups?.size ?: 0
   override fun isEmpty() = groups?.isEmpty() ?: true
-  override fun get(key: String) = runCatching { groups?.get(key) }.getOrNull()?.value
+  override fun get(key: String) = namedGroups[key]?.let { groups?.get(it) }?.value
   override fun containsKey(key: String) = get(key) != null
   override fun containsValue(value: String?) = groups?.find { it != null && it.value == value } != null
 
