@@ -7,7 +7,7 @@ import java.net.URLEncoder
 import java.util.*
 
 fun String.urlDecode() = URLDecoder.decode(this, Charsets.UTF_8)!!
-fun String.urlEncode() = URLEncoder.encode(this, Charsets.UTF_8)!!
+fun String.urlEncode() = URLEncoder.encode(this, Charsets.UTF_8).replace("+", "%20")
 
 fun ByteArray.base64Encode() = Base64.getEncoder().encodeToString(this)!!
 fun String.base64Encode() = toByteArray().base64Encode()
