@@ -13,7 +13,6 @@ import klite.nodes.textOrNull
 import java.net.URI
 import java.net.http.HttpClient
 import java.time.Instant
-import kotlin.time.Duration.Companion.seconds
 
 // https://aistudio.google.com/prompts/new_chat
 open class GeminiClient(
@@ -24,8 +23,7 @@ open class GeminiClient(
   val params: Node = emptyMap()
 ): AIClient {
   private val http = JsonHttpClient(baseUrl, http = httpClient, json = JsonMapper(keys = SnakeCase),
-    maxLoggedLen = Config.optional("AI_LOG_LEN", "20000").toInt(),
-    reqModifier = { timeout(30.seconds) })
+    maxLoggedLen = maxLoggedLen, reqModifier = { timeout(timeout) })
 
   override fun query(input: String, vararg fileUrl: URI, prevResponseId: String?, params: Node): AIClient.Response =
     query(toInput(input, fileUrl), params, prevResponseId).toTextResponse()

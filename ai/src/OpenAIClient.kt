@@ -14,7 +14,6 @@ import java.net.URI
 import java.net.http.HttpClient
 import java.time.Instant
 import kotlin.reflect.KType
-import kotlin.time.Duration.Companion.seconds
 
 // https://platform.openai.com/docs/api-reference/making-requests
 open class OpenAIClient(
@@ -26,8 +25,7 @@ open class OpenAIClient(
 ): AIClient {
   private val auth = "Bearer " + apiKey
   private val http = JsonHttpClient(baseUrl, http = httpClient, json = JsonMapper(keys = SnakeCase, values = instantAsInt),
-    maxLoggedLen = Config.optional("AI_LOG_LEN", "20000").toInt(),
-    reqModifier = { header("Authorization", auth).timeout(30.seconds) })
+    maxLoggedLen = maxLoggedLen, reqModifier = { header("Authorization", auth).timeout(timeout) })
 
   override fun query(input: String, vararg fileUrl: URI, prevResponseId: String?, params: Node): AIClient.Response =
     query(toInput(input, fileUrl), params, prevResponseId).toTextResponse()
