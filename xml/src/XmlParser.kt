@@ -20,6 +20,7 @@ import kotlin.reflect.KType
 import kotlin.reflect.full.createType
 import kotlin.reflect.full.findAnnotation
 import kotlin.reflect.full.isSubclassOf
+import kotlin.reflect.jvm.jvmErasure
 
 /**
  * Supports absolute (from root /) and relative paths (resolved from current element),
@@ -170,9 +171,9 @@ class XmlParser(
   }
 
   private fun buildObject(element: XmlElement, type: KType): Any? {
-    val cls = type.classifier as KClass<*>
+    val cls = type.jvmErasure
     if (cls == String::class || Converter.supports(cls)) {
-      val text = element.text ?: return if (type.isMarkedNullable) null else error("Non-null $type not found in ${element.name}")
+      val text = element.text ?: return if (type.isMarkedNullable) null else error("${element.name} is required")
       return values.from(if (cls == String::class) text else Converter.from(text, cls))
     }
     if (cls == Map::class) return toNode(element)
@@ -207,6 +208,6 @@ class XmlParser(
 private class PropInfo(val path: List<String>, val prop: KProperty1<*, *>) {
   val name get() = prop.name
   val type get() = prop.returnType
-  val isCollection get() = (type.classifier as? KClass<*>)?.isSubclassOf(Collection::class) == true
+  val isCollection get() = type.jvmErasure.isSubclassOf(Collection::class)
   val elemType = if (isCollection) prop.returnType.arguments.first().type else null
 }
