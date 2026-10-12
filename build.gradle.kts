@@ -15,10 +15,6 @@ subprojects {
   apply(plugin = "maven-publish")
   apply(plugin = "signing")
 
-  repositories {
-    mavenCentral()
-  }
-
   dependencies {
     val libs = rootProject.libs
     testImplementation(libs.junit)
@@ -107,4 +103,10 @@ subprojects {
       }
     }
   }
+}
+
+// maven-publish is only applied to subprojects, but JitPack looks for this task at the top level
+tasks.register("publishToMavenLocal") {
+  group = "publishing"
+  dependsOn(subprojects.map { "${it.path}:publishToMavenLocal" })
 }

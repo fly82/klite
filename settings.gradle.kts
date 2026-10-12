@@ -1,6 +1,19 @@
+// JitPack's shared IPs get HTTP 429 from repo.maven.apache.org, so resolve everything through a mirror first
+pluginManagement {
+  repositories {
+    maven("https://maven-central.storage-download.googleapis.com/maven2/")
+    gradlePluginPortal()
+  }
+}
+
 rootProject.name = "klite"
 
 dependencyResolutionManagement {
+  repositories {
+    maven("https://maven-central.storage-download.googleapis.com/maven2/")
+    mavenCentral()
+  }
+
   versionCatalogs {
     create("libs") {
       version("kotlin", "2.4.20")
