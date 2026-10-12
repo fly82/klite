@@ -3,6 +3,8 @@ package klite.xml
 import klite.*
 import klite.nodes.Node
 import org.intellij.lang.annotations.Language
+import org.w3c.dom.Document
+import org.w3c.dom.Element
 import org.xml.sax.InputSource
 import java.io.InputStream
 import java.io.Reader
@@ -19,6 +21,7 @@ import kotlin.reflect.KType
 import kotlin.reflect.full.createType
 import kotlin.reflect.full.findAnnotation
 import kotlin.reflect.full.isSubclassOf
+import org.w3c.dom.Node as DomNode
 
 /**
  * Supports absolute (from root /) and relative paths (resolved from current element),
@@ -133,6 +136,11 @@ class XmlParser(
     return buildObject(root, cls.createType()) as T
   }
 
+  inline fun <reified T: Any> parse(@Language("xml") xml: Document): T = parse(xml, T::class)
+
+  fun <T : Any> parse(@Language("xml") xml: Document, cls: KClass<T>): T =
+    buildObject(xml.documentElement.toXmlElement(), cls.createType()) as T
+
   internal fun readElement(xml: InputSource): XmlElement {
     val reader = reader(xml)
     val text = StringBuilder(256)
@@ -225,4 +233,23 @@ internal class XmlElement(
     }
     return listOf(e)
   }
+}
+
+internal fun Element.toXmlElement(): XmlElement {
+  val attrs = if (attributes.length == 0) null else (0 until attributes.length).associate { i ->
+    val a = attributes.item(i)
+    "@${a.localName?.takeIf(String::isNotEmpty) ?: a.nodeName}" to a.nodeValue
+  }
+  val text = StringBuilder()
+  val children = mutableListOf<XmlElement>()
+  var n = firstChild
+  while (n != null) {
+    when (n.nodeType) {
+      DomNode.ELEMENT_NODE -> children += (n as Element).toXmlElement()
+      DomNode.TEXT_NODE, DomNode.CDATA_SECTION_NODE -> text.append(n.textContent)
+    }
+    n = n.nextSibling
+  }
+  return XmlElement(localName?.takeIf(String::isNotEmpty) ?: tagName, attrs,
+    text.trim().takeIf { it.isNotEmpty() }?.toString(), children)
 }

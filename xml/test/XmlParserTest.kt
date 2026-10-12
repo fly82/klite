@@ -12,7 +12,11 @@ import klite.nodes.text
 import klite.nodes.value
 import org.intellij.lang.annotations.Language
 import org.junit.jupiter.api.Test
+import org.xml.sax.InputSource
+import java.io.StringReader
+import javax.xml.parsers.DocumentBuilderFactory
 import kotlin.reflect.KType
+import org.w3c.dom.Document as DomDocument
 
 class XmlParserTest {
   val parser = XmlParser()
@@ -57,6 +61,27 @@ class XmlParserTest {
   @Test fun parse() {
     expect(parser.parse<Identifier>(xml)).toEqual(
       Identifier("123", "AGENCY1", "SEA", dangerousGoods = true))
+  }
+
+  private fun dom(@Language("XML") xml: String): DomDocument =
+    DocumentBuilderFactory.newInstance().apply { isNamespaceAware = true }
+      .newDocumentBuilder().parse(InputSource(StringReader(xml)))
+
+  @Test fun parseFromDom() {
+    expect(parser.parse<Identifier>(dom(xml))).toEqual(
+      Identifier("123", "AGENCY1", "SEA", dangerousGoods = true))
+    expect(parser.parse(dom(xml), Identifier::class)).toEqual(
+      Identifier("123", "AGENCY1", "SEA", dangerousGoods = true))
+  }
+
+  @Test fun parseFromDomWithNamespaces() {
+    expect(parser.parse<Identifier>(dom(xmlWithNamespaces))).toEqual(
+      Identifier("123", "AGENCY1", "SEA", dangerousGoods = true))
+  }
+
+  @Test fun parseFromDomWithNestedRepeatedElements() {
+    expect(parser.parse<Library>(dom(xmlWithRepeating))).toEqual(
+      parser.parse<Library>(xmlWithRepeating))
   }
 
   @Test fun namespaces() {

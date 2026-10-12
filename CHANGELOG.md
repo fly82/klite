@@ -23,6 +23,7 @@
 * smtp: module was renamed to *email*, update references
 * email: EmailContent.bodyHtml support added
 * email: ImapEmailReader introduced for reading incoming mail over IMAP
+* xml: `XmlParser` can now produce `@XmlPath`-annotated objects from DOM trees
 
 # 2.0.7
 * xml: @XmlPath now supports attribute predicates to filter elements by attribute value, e.g. `item[@type=something]`
