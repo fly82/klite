@@ -99,7 +99,7 @@ fun RouterConfig.rateLimit(limit: Int, window: Duration) {
 private data class RateLimit(var tokens: Double, var lastRefill: Long)
 
 fun RouterConfig.securityBan(bannedFor: Duration = 1.hours,
-  blacklistedPaths: List<String> = listOf("/..", "/.env", "/.git", "compose.yml", ".php")) {
+  blacklistedPaths: List<String> = listOf("/..", "/.env", "/.git", "/.aws", "compose.yml", ".php")) {
   val banned = Cache<String, Boolean>(expiration = bannedFor)
   val log = logger("securityBan")
   val requestsBanned = AtomicLong()
