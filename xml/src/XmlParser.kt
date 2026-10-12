@@ -4,7 +4,6 @@ import klite.*
 import klite.nodes.Node
 import org.intellij.lang.annotations.Language
 import org.w3c.dom.Document
-import org.w3c.dom.Element
 import org.xml.sax.InputSource
 import java.io.InputStream
 import java.io.Reader
@@ -21,7 +20,6 @@ import kotlin.reflect.KType
 import kotlin.reflect.full.createType
 import kotlin.reflect.full.findAnnotation
 import kotlin.reflect.full.isSubclassOf
-import org.w3c.dom.Node as DomNode
 
 /**
  * Supports absolute (from root /) and relative paths (resolved from current element),
@@ -31,17 +29,17 @@ import org.w3c.dom.Node as DomNode
 @Target(PROPERTY) @Retention(RUNTIME)
 annotation class XmlPath(val path: String)
 
-@Deprecated("Use XmlParser instead", ReplaceWith("XmlParser"))
-typealias XMLParser = XmlParser
-
 typealias XmlNode = Node
+
+fun secureXMLInputFactory(block: XMLInputFactory.() -> Unit = {}) = XMLInputFactory.newFactory().apply {
+  setProperty(XMLInputFactory.IS_SUPPORTING_EXTERNAL_ENTITIES, false)
+  setProperty(XMLInputFactory.SUPPORT_DTD, false)
+  block()
+}
 
 @Suppress("UNCHECKED_CAST")
 class XmlParser(
-  private val factory: XMLInputFactory = XMLInputFactory.newFactory().apply {
-    setProperty(XMLInputFactory.IS_SUPPORTING_EXTERNAL_ENTITIES, false)
-    setProperty(XMLInputFactory.SUPPORT_DTD, false)
-  },
+  private val factory: XMLInputFactory = secureXMLInputFactory(),
   private val keys: KeyConverter = KeyConverter(),
   private val values: ValueConverter<Any?> = ValueConverter()
 ) {
@@ -211,45 +209,4 @@ private class PropInfo(val path: List<String>, val prop: KProperty1<*, *>) {
   val type get() = prop.returnType
   val isCollection get() = (type.classifier as? KClass<*>)?.isSubclassOf(Collection::class) == true
   val elemType = if (isCollection) prop.returnType.arguments.first().type else null
-}
-
-internal class XmlElement(
-  @JvmField val name: String,
-  @JvmField val attributes: Map<String, String>? = null,
-  @JvmField var text: String? = null,
-  @JvmField var children: MutableList<XmlElement> = mutableListOf()
-) {
-  fun find(path: List<String>): List<XmlElement> {
-    var e: XmlElement = this
-    val path = if (path.first().substringBefore('[') == e.name) path.drop(1) else path
-    for ((i, n) in path.withIndex()) {
-      if (n == "" || n == ".") break
-      if (n.startsWith("@")) return listOf(XmlElement(n, text = e.attributes?.get(n)))
-      val elemName = n.substringBefore('[')
-      val attr = n.substringAfter("[@", "").substringBefore(']').split('=', limit = 2)
-      fun matches(c: XmlElement) = c.name == elemName && (attr.size < 2 || c.attributes?.get("@${attr[0]}") == attr[1])
-      if (i == path.lastIndex) return e.children.filter(::matches)
-      e = e.children.firstOrNull(::matches) ?: return emptyList()
-    }
-    return listOf(e)
-  }
-}
-
-internal fun Element.toXmlElement(): XmlElement {
-  val attrs = if (attributes.length == 0) null else (0 until attributes.length).associate { i ->
-    val a = attributes.item(i)
-    "@${a.localName?.takeIf(String::isNotEmpty) ?: a.nodeName}" to a.nodeValue
-  }
-  val text = StringBuilder()
-  val children = mutableListOf<XmlElement>()
-  var n = firstChild
-  while (n != null) {
-    when (n.nodeType) {
-      DomNode.ELEMENT_NODE -> children += (n as Element).toXmlElement()
-      DomNode.TEXT_NODE, DomNode.CDATA_SECTION_NODE -> text.append(n.textContent)
-    }
-    n = n.nextSibling
-  }
-  return XmlElement(localName?.takeIf(String::isNotEmpty) ?: tagName, attrs,
-    text.trim().takeIf { it.isNotEmpty() }?.toString(), children)
 }

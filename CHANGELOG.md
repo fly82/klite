@@ -23,6 +23,7 @@
 * smtp: module was renamed to *email*, update references
 * email: EmailContent.bodyHtml support added
 * email: ImapEmailReader introduced for reading incoming mail over IMAP
+* xml: expose `secureDocumentBuilderFactory` and `secureXMLInputFactory` for use in other modules
 * xml: `XmlParser` can now produce `@XmlPath`-annotated objects from DOM trees
 
 # 2.0.7
