@@ -92,6 +92,11 @@ class MultipartParserTest {
       .toThrow<BadRequestException>()
   }
 
+  @Test fun `final boundary without a trailing newline`() {
+    val body = "--B\r\nContent-Type: text/plain\r\n\r\nx\r\n--B--"
+    expect(parser.parse(body.byteInputStream(), "${MimeTypes.formData}; boundary=B")[""]).toEqual("x")
+  }
+
   @Test fun `body size limit is enforced on the buffered stream`() {
     val body = "--B\r\nContent-Type: text/plain\r\n\r\n" + "x".repeat(100) + "\r\n--B--\r\n"
     expect { parser.parse(SizeLimitedInputStream(body.byteInputStream(), 10), "${MimeTypes.formData}; boundary=B") }

@@ -26,15 +26,15 @@ class MultipartParser(
   /** [requestContentType] is absent when there's no request to take the boundary from, then it's read from the body */
   internal fun parse(input: InputStream, requestContentType: String?): Map<String, Any> {
     val declaredBoundary = requestContentType?.let { it.multipartBoundary() ?: throw BadRequestException("Invalid or missing multipart boundary") }
-    val stream = input.buffered()
-    val delimiter = stream.readDelimiter(declaredBoundary)
+    val reader = LineReader(input)
+    val delimiter = readDelimiter(reader, declaredBoundary)
 
     val result = mutableMapOf<String, Any>()
     var state = State()
     while (true) {
       val line = if (state.readingHeaders) TrimmableOutputStream(128) else state.content
       val offset = state.content.size() // content lines are read in place, only a delimiter line is rolled back to this offset
-      if (!stream.readLine(line)) break
+      if (!reader.readLine(line)) break
       if (state.readingHeaders) {
         line.trimEnd()
         if (line.isEmpty()) { state.readingHeaders = false; continue }
@@ -64,30 +64,17 @@ class MultipartParser(
   }
 
   /** A declared boundary is authoritative and may be preceded by a preamble; without one the first non-empty body line is used (backwards compatible) */
-  private fun InputStream.readDelimiter(declaredBoundary: String?): TrimmableOutputStream {
+  private fun readDelimiter(reader: LineReader, declaredBoundary: String?): TrimmableOutputStream {
     val declared = declaredBoundary?.let { "--$it".toDelimiter() }
     while (true) {
       val line = TrimmableOutputStream(128)
-      if (!readLine(line)) throw BadRequestException("Multipart boundary not found")
+      if (!reader.readLine(line)) throw BadRequestException("Multipart boundary not found")
       line.trimEnd()
       if (declared?.let { line.startsWith(it) } ?: !line.isEmpty()) return declared ?: line
     }
   }
 
   private fun String.toDelimiter() = TrimmableOutputStream(length).also { it.write(toByteArray()) }
-
-  /** Reads up to and including the newline into [target], false when the stream ends before any byte is read */
-  private fun InputStream.readLine(target: TrimmableOutputStream): Boolean {
-    var b = read()
-    if (b < 0) return false
-    while (true) {
-      target.appendByte(b)
-      if (b == '\n'.code) break
-      b = read()
-      if (b < 0) break
-    }
-    return true
-  }
 
   private class State {
     var readingHeaders: Boolean = true
@@ -106,12 +93,35 @@ private fun String.multipartBoundary() = headerParams()["boundary"]?.takeIf { it
 private fun String.safeFileName() = replace('\\', '/').substringAfterLast('/')
   .filter { it >= ' ' && it != '\u007f' }.takeIf { it != "." && it != ".." }.orEmpty()
 
-private class TrimmableOutputStream(size: Int): ByteArrayOutputStream(size) {
-  /** `ByteArrayOutputStream.write` is synchronized, which dominates when appending byte by byte */
-  fun appendByte(b: Int) {
-    if (count == buf.size) write(b) else buf[count++] = b.toByte()
-  }
+private class LineReader(input: InputStream) {
+  private val stream = input.buffered()
+  private val buf = ByteArray(DEFAULT_BUFFER_SIZE)
+  private var pos = 0
+  private var limit = 0
 
+  /** Reads up to and including the newline into [target], false when the stream ends before any byte is read */
+  fun readLine(target: TrimmableOutputStream): Boolean {
+    var read = false
+    while (true) {
+      if (pos >= limit) { // >= because the end of stream is recorded as a negative limit
+        limit = stream.read(buf)
+        pos = 0
+        if (limit < 1) return read
+      }
+      val start = pos
+      while (pos < limit && buf[pos] != '\n'.code.toByte()) pos++
+      val found = pos < limit
+      if (found) pos++ // the line includes its newline
+      if (pos > start) {
+        target.write(buf, start, pos - start)
+        read = true
+      }
+      if (found) return true
+    }
+  }
+}
+
+private class TrimmableOutputStream(size: Int): ByteArrayOutputStream(size) {
   fun isEmpty() = count == 0
 
   fun startsWith(prefix: TrimmableOutputStream, offset: Int = 0) =
