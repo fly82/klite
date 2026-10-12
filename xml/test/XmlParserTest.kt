@@ -446,25 +446,25 @@ class XmlParserTest {
   @Test fun `missing required attribute value`() {
     data class Item(@XmlPath("@id") val id: Int)
     expect { parser.parse<Item>("<root/>") }.toThrow<IllegalStateException>()
-      .message.toEqual("Value not found in <@id>")
+      .message.toEqual("@id is required")
   }
 
   @Test fun `missing required element value`() {
     data class Item(val id: Int)
     expect { parser.parse<Item>("<root><id/></root>") }.toThrow<IllegalStateException>()
-      .message.toEqual("Value not found in <id>")
+      .message.toEqual("id is required")
   }
 
   @Test fun `missing required string value`() {
     data class Item(val name: String)
     expect { parser.parse<Item>("<root><name/></root>") }.toThrow<IllegalStateException>()
-      .message.toEqual("Value not found in <name>")
+      .message.toEqual("name is required")
   }
 
   @Test fun `missing required string attribute`() {
     data class Item(@XmlPath("@id") val id: String)
     expect { parser.parse<Item>("<root/>") }.toThrow<IllegalStateException>()
-      .message.toEqual("Value not found in <@id>")
+      .message.toEqual("@id is required")
   }
 
   @Test fun `nullable value stays null when missing`() {
