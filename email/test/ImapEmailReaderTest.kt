@@ -115,6 +115,51 @@ class ImapEmailReaderTest {
     verify(exactly = 0) { message.setFlag(Flags.Flag.SEEN, true) }
   }
 
+  @Test fun `processAndDelete deletes messages that were processed`() {
+    val message = spyk(message())
+    every { folder.search(any()) } returns arrayOf(message)
+    val processed = mutableListOf<String?>()
+    reader.processAndDelete { processed += it.subject }
+    expect(processed).toContainExactly("Subject")
+    verify { folder.search(ImapEmailReader.notDeleted) }
+    verify { message.setFlag(Flags.Flag.DELETED, true) }
+    verify { folder.expunge() }
+  }
+
+  @Test fun `processAndDelete keeps messages if handler fails`() {
+    val message = spyk(message())
+    every { folder.search(any()) } returns arrayOf(message)
+    expect(runCatching { reader.processAndDelete { error("boom") } }.isFailure).toEqual(true)
+    verify(exactly = 0) { message.setFlag(Flags.Flag.DELETED, true) }
+    verify(exactly = 0) { folder.expunge() }
+  }
+
+  @Test fun `processAndMove moves processed messages to another folder`() {
+    val message = spyk(message())
+    val archive = mockk<Folder>(relaxed = true)
+    every { folder.store } returns store
+    every { store.getFolder("Archive") } returns archive
+    every { archive.exists() } returns false
+    every { folder.search(any()) } returns arrayOf(message)
+    reader.processAndMove("Archive") { }
+    verify { archive.create(Folder.HOLDS_MESSAGES) }
+    verify { folder.copyMessages(match { it.single() === message }, archive) }
+    verify { message.setFlag(Flags.Flag.DELETED, true) }
+    verify { folder.expunge() }
+  }
+
+  @Test fun `processAndMove reuses existing target folder`() {
+    val message = spyk(message())
+    val archive = mockk<Folder>(relaxed = true)
+    every { folder.store } returns store
+    every { store.getFolder("Archive") } returns archive
+    every { archive.exists() } returns true
+    every { folder.search(any()) } returns arrayOf(message)
+    reader.processAndMove("Archive") { }
+    verify(exactly = 0) { archive.create(any()) }
+    verify { folder.copyMessages(any(), archive) }
+  }
+
   private fun message(block: MimeMessage.() -> Unit = {}) = MimeMessage(Session.getInstance(Properties())).apply {
     setFrom(InternetAddress("from@example.com"))
     subject = "Subject"

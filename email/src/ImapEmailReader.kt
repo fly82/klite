@@ -5,9 +5,9 @@ import klite.info
 import klite.logger
 import java.util.*
 import javax.mail.*
+import javax.mail.Flags.Flag.DELETED
 import javax.mail.Flags.Flag.SEEN
-import javax.mail.Folder.READ_ONLY
-import javax.mail.Folder.READ_WRITE
+import javax.mail.Folder.*
 import javax.mail.search.FlagTerm
 import javax.mail.search.SearchTerm
 
@@ -30,6 +30,7 @@ open class ImapEmailReader(
 
   companion object {
     val unseen = FlagTerm(Flags(SEEN), false)
+    val notDeleted = FlagTerm(Flags(DELETED), false)
   }
 
   /** Fetches messages without marking them as read */
@@ -37,14 +38,33 @@ open class ImapEmailReader(
     search(term).map { it.toEmailMessage() }
   }
 
-  /** Processes messages one by one, marking each as seen after [handler] returns successfully */
-  fun process(term: FlagTerm = unseen, mark: (Message) -> Unit = { it.setFlag(term.flags.systemFlags.first(), true) }, handler: (EmailMessage) -> Unit) = useFolder(READ_WRITE) {
-    search(term).forEach {
+  /**
+   * Processes messages one by one, running [mark] on each message after [handler] returns successfully.
+   * The default marks the message as seen, deleted messages are expunged once all of them are processed.
+   */
+  fun process(term: SearchTerm = unseen, mark: Folder.(Message) -> Unit = { it.setFlag(SEEN, true) }, handler: (EmailMessage) -> Unit) = useFolder(READ_WRITE) {
+    val messages = search(term)
+    messages.forEach {
       val email = it.toEmailMessage()
       handler(email)
       mark(it)
       log.info("Processed email ${email.id ?: email.subject} from ${email.from}")
     }
+    if (messages.any { it.isSet(DELETED) }) expunge()
+  }
+
+  /** Processes not deleted messages, deleting each of them after [handler] returns successfully */
+  fun processAndDelete(handler: (EmailMessage) -> Unit) = process(notDeleted, { it.delete() }, handler)
+
+  /** Processes not deleted messages, moving each of them to [targetFolder] after [handler] returns successfully */
+  fun processAndMove(targetFolder: String, handler: (EmailMessage) -> Unit) = process(notDeleted, { moveTo(it, targetFolder) }, handler)
+
+  /** Copies [message] to [targetFolder] (creating it when missing), so that the message can be deleted from this folder */
+  private fun Folder.moveTo(message: Message, targetFolder: String) {
+    val target = store.getFolder(targetFolder)
+    if (!target.exists()) target.create(HOLDS_MESSAGES)
+    copyMessages(arrayOf(message), target)
+    message.delete()
   }
 
   /** Opens [folderName] with the given [mode], passing it to [block], then closes everything */
@@ -59,3 +79,5 @@ open class ImapEmailReader(
     }
   }
 }
+
+fun Message.delete() = setFlag(DELETED, true)

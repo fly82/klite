@@ -36,13 +36,21 @@ Configure the mailbox via `IMAP_HOST`, `IMAP_PORT` (defaults to 993), `IMAP_USER
 ```kotlin
 val reader = ImapEmailReader()
 
-// process new mail, marking each message as seen after the handler succeeds
-reader.processUnseen { email ->
+// process unseen messages, marking each one as seen once the handler has succeeded
+reader.process { email ->
   println("${email.from}: ${email.subject}, text=${email.text}, attachments=${email.attachments.keys}")
 }
 
-// or just fetch unseen messages without changing flags
-val unseen: List<ReceivedEmail> = reader.fetchUnseen()
+// process all messages that are not deleted, deleting each one after the handler has succeeded
+reader.processAndDelete { email -> }
+
+// or move each successfully processed message to another folder (created when missing)
+reader.processAndMove("Processed") { email -> }
 ```
 
-Use `ImapEmailReader.useFolder` for lower-level access (e.g. to move or delete messages).
+Any failure thrown by the handler stops the processing, leaving the failed message untouched in the folder.
+
+To fetch messages without changing any flags, use `fetch()`, e.g. `reader.fetch(ImapEmailReader.notDeleted)` for all messages
+not marked as deleted, including the ones already seen.
+
+Use `ImapEmailReader.useFolder` for lower-level access (e.g. to set custom flags).
