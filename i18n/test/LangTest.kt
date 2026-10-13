@@ -25,17 +25,34 @@ class LangTest {
     expect(exchange.lang).toEqual("en")
   }
 
-  @Test fun `detect from header`() {
-    every { exchange.header("Accept-Language") } returns "en-US,en;q=0.9,jp"
+  @Test fun `invalid cookie falls back to Accept-Language`() {
+    every { exchange.cookie(Lang.COOKIE) } returns "xy"
+    every { exchange.header("Accept-Language") } returns "et"
+    expect(exchange.lang).toEqual("et")
+  }
+
+  @Test fun `detect from Accept-Language`() {
+    every { exchange.header("Accept-Language") } returns "et-EE,et;q=0.9,en;q=0.8"
+    expect(exchange.lang).toEqual("et")
+  }
+
+  @Test fun `detect from Accept-Language without country`() {
+    every { exchange.header("Accept-Language") } returns "et;q=0.9,en;q=0.8"
+    expect(exchange.lang).toEqual("et")
+  }
+
+  @Test fun `detect from Accept-Language skips unavailable`() {
+    every { exchange.header("Accept-Language") } returns "jp,en;q=0.9"
     expect(exchange.lang).toEqual("en")
   }
 
-  @Test fun `detect from header without country`() {
-    every { exchange.header("Accept-Language") } returns "en;q=0.9,jp"
+  @Test fun `cookie preferred over Accept-Language`() {
+    every { exchange.cookie(Lang.COOKIE) } returns "en"
+    every { exchange.header("Accept-Language") } returns "et"
     expect(exchange.lang).toEqual("en")
   }
 
-  @Test fun `fallback to en`() {
+  @Test fun `fallback to default`() {
     every { exchange.header("Accept-Language") } returns null
     expect(exchange.lang).toEqual("en")
   }

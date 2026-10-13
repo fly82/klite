@@ -67,7 +67,9 @@ private fun String.substitute(substitutions: Map<String, String>?) =
   substitutions?.entries?.fold(this) { str, (key, value) -> str.replace("{$key}", value) } ?: this
 
 var HttpExchange.lang: String
-  get() = Lang.ensureAvailable(cookie(Lang.COOKIE))
+  get() = Lang.takeIfAvailable(cookie(Lang.COOKIE))
+    ?: header("Accept-Language")?.split(',')?.firstNotNullOfOrNull { Lang.takeIfAvailable(it.trim().substringBefore(';').substringBefore('-')) }
+    ?: Lang.available.first()
   set(value) = cookie(Lang.COOKIE, value)
 
 fun HttpExchange.translate(key: String, substitutions: Map<String, String> = emptyMap()) =
