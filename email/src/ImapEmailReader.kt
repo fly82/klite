@@ -42,7 +42,7 @@ open class ImapEmailReader(
    * Processes messages one by one, running [mark] on each message after [handler] returns successfully.
    * The default marks the message as seen, deleted messages are expunged once all of them are processed.
    */
-  fun process(term: SearchTerm = unseen, mark: Folder.(Message) -> Unit = { it.setFlag(SEEN, true) }, handler: (EmailMessage) -> Unit) = useFolder(READ_WRITE) {
+  fun process(term: SearchTerm = unseen, mark: (Message) -> Unit = { it.markSeen() }, handler: (EmailMessage) -> Unit) = useFolder(READ_WRITE) {
     val messages = search(term)
     messages.forEach {
       val email = it.toEmailMessage()
@@ -57,14 +57,15 @@ open class ImapEmailReader(
   fun processAndDelete(handler: (EmailMessage) -> Unit) = process(notDeleted, { it.delete() }, handler)
 
   /** Processes not deleted messages, moving each of them to [targetFolder] after [handler] returns successfully */
-  fun processAndMove(targetFolder: String, handler: (EmailMessage) -> Unit) = process(notDeleted, { moveTo(it, targetFolder) }, handler)
-
-  /** Copies [message] to [targetFolder] (creating it when missing), so that the message can be deleted from this folder */
-  private fun Folder.moveTo(message: Message, targetFolder: String) {
-    val target = store.getFolder(targetFolder)
-    if (!target.exists()) target.create(HOLDS_MESSAGES)
-    copyMessages(arrayOf(message), target)
-    message.delete()
+  fun processAndMove(targetFolder: String, handler: (EmailMessage) -> Unit) {
+    var target: Folder? = null
+    process(notDeleted, {
+      if (target == null) {
+        target = it.folder.store.getFolder(targetFolder)
+        if (!target.exists()) target.create(HOLDS_MESSAGES)
+      }
+      it.moveTo(target)
+    }, handler)
   }
 
   /** Opens [folderName] with the given [mode], passing it to [block], then closes everything */
@@ -80,4 +81,6 @@ open class ImapEmailReader(
   }
 }
 
+fun Message.markSeen() = setFlag(SEEN, true)
 fun Message.delete() = setFlag(DELETED, true)
+fun Message.moveTo(target: Folder) = folder.copyMessages(arrayOf(this), target).also { delete() }
