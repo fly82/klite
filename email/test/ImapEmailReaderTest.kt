@@ -14,6 +14,8 @@ import klite.MimeTypes
 import org.junit.jupiter.api.Test
 import java.util.*
 import javax.mail.*
+import javax.mail.Flags.Flag.DELETED
+import javax.mail.Folder.HOLDS_MESSAGES
 import javax.mail.Message.RecipientType.CC
 import javax.mail.Message.RecipientType.TO
 import javax.mail.internet.InternetAddress
@@ -122,7 +124,7 @@ class ImapEmailReaderTest {
     reader.processAndDelete { processed += it.subject }
     expect(processed).toContainExactly("Subject")
     verify { folder.search(ImapEmailReader.notDeleted) }
-    verify { message.setFlag(Flags.Flag.DELETED, true) }
+    verify { message.setFlag(DELETED, true) }
     verify { folder.expunge() }
   }
 
@@ -130,27 +132,29 @@ class ImapEmailReaderTest {
     val message = spyk(message())
     every { folder.search(any()) } returns arrayOf(message)
     expect(runCatching { reader.processAndDelete { error("boom") } }.isFailure).toEqual(true)
-    verify(exactly = 0) { message.setFlag(Flags.Flag.DELETED, true) }
+    verify(exactly = 0) { message.setFlag(DELETED, true) }
     verify(exactly = 0) { folder.expunge() }
   }
 
   @Test fun `processAndMove moves processed messages to another folder`() {
     val message = spyk(message())
     val archive = mockk<Folder>(relaxed = true)
+    every { message.folder } returns folder
     every { folder.store } returns store
     every { store.getFolder("Archive") } returns archive
     every { archive.exists() } returns false
     every { folder.search(any()) } returns arrayOf(message)
     reader.processAndMove("Archive") { }
-    verify { archive.create(Folder.HOLDS_MESSAGES) }
+    verify { archive.create(HOLDS_MESSAGES) }
     verify { folder.copyMessages(match { it.single() === message }, archive) }
-    verify { message.setFlag(Flags.Flag.DELETED, true) }
+    verify { message.setFlag(DELETED, true) }
     verify { folder.expunge() }
   }
 
   @Test fun `processAndMove reuses existing target folder`() {
     val message = spyk(message())
     val archive = mockk<Folder>(relaxed = true)
+    every { message.folder } returns folder
     every { folder.store } returns store
     every { store.getFolder("Archive") } returns archive
     every { archive.exists() } returns true
@@ -158,6 +162,21 @@ class ImapEmailReaderTest {
     reader.processAndMove("Archive") { }
     verify(exactly = 0) { archive.create(any()) }
     verify { folder.copyMessages(any(), archive) }
+  }
+
+  @Test fun `processAndMove looks up target folder only once`() {
+    val first = spyk(message())
+    val second = spyk(message())
+    val archive = mockk<Folder>(relaxed = true)
+    every { first.folder } returns folder
+    every { second.folder } returns folder
+    every { folder.store } returns store
+    every { store.getFolder("Archive") } returns archive
+    every { archive.exists() } returns true
+    every { folder.search(any()) } returns arrayOf(first, second)
+    reader.processAndMove("Archive") { }
+    verify(exactly = 1) { archive.exists() }
+    verify(exactly = 2) { folder.copyMessages(any(), archive) }
   }
 
   private fun message(block: MimeMessage.() -> Unit = {}) = MimeMessage(Session.getInstance(Properties())).apply {
