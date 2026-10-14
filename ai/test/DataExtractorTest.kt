@@ -1,9 +1,12 @@
 package klite.ai
 
 import ch.tutteli.atrium.api.fluent.en_GB.toEqual
+import ch.tutteli.atrium.api.fluent.en_GB.toThrow
 import ch.tutteli.atrium.api.verbs.expect
 import io.mockk.every
 import io.mockk.mockk
+import klite.StatusCode
+import klite.http.HttpException
 import org.junit.jupiter.api.Test
 
 class DataExtractorTest {
@@ -29,6 +32,28 @@ class DataExtractorTest {
 
     expect(extractor.extract<TestClass>("test").key).toEqual("recovered")
     expect(attempts).toEqual(3)
+  }
+
+  @Test fun `extract does not retry on a malformed request`() {
+    var attempts = 0
+    every { aiClient.query(any()) } answers {
+      attempts++
+      throw HttpException(StatusCode.BadRequest, "invalid_request_error")
+    }
+
+    expect { extractor.extract<TestClass>("test") }.toThrow<HttpException>()
+    expect(attempts).toEqual(1)
+  }
+
+  @Test fun `extract does not retry on too many requests`() {
+    var attempts = 0
+    every { aiClient.query(any()) } answers {
+      attempts++
+      throw HttpException(StatusCode.TooManyRequests, "rate_limit_error")
+    }
+
+    expect { extractor.extract<TestClass>("test") }.toThrow<HttpException>()
+    expect(attempts).toEqual(1)
   }
 
   data class TestClass(val key: String)
