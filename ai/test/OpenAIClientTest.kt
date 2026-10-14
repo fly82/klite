@@ -39,7 +39,6 @@ class OpenAIClientTest {
 
   @Test fun `data url document is inlined as is`() {
     val data = URI("data:application/pdf;base64,AAAA")
-
-    expect(data.toOpenAIContent()).toEqual(OpenAIClient.Content(type = "input_file", fileData = data))
+    expect(data.toOpenAIContent()).toEqual(OpenAIClient.Content(type = "input_file", fileData = data, filename = "file.pdf"))
   }
 }

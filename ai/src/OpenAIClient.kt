@@ -58,7 +58,10 @@ internal fun URI.toOpenAIContent(): OpenAIClient.Content = when {
   else -> OpenAIClient.Content(fileData = if (scheme == "file") File(path).toBase64Url() else this, filename = fileName, type = "input_file")
 }
 
-private val URI.fileName: String? get() = path?.substringAfterLast('/')?.takeIf { it.isNotEmpty() }
+private val URI.fileName: String? get() = when (scheme) {
+  "data" -> "file." + schemeSpecificPart.substringAfter('/', "bin").substringBefore(';').ifEmpty { "bin" }
+  else -> path?.substringAfterLast('/')?.takeIf { it.isNotEmpty() }
+}
 
 private val instantAsInt = object: ValueConverter<Any?>() {
   override fun to(o: Any?) = when (o) {
