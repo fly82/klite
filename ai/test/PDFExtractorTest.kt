@@ -3,110 +3,38 @@ package klite.ai
 import ch.tutteli.atrium.api.fluent.en_GB.toContain
 import ch.tutteli.atrium.api.fluent.en_GB.toEqual
 import ch.tutteli.atrium.api.verbs.expect
-import io.mockk.every
-import io.mockk.mockk
-import org.apache.pdfbox.pdmodel.PDDocument
-import org.apache.pdfbox.pdmodel.PDPage
-import org.apache.pdfbox.pdmodel.PDPageContentStream
-import org.apache.pdfbox.pdmodel.common.PDRectangle
-import org.apache.pdfbox.pdmodel.font.PDType1Font
-import org.apache.pdfbox.pdmodel.font.Standard14Fonts.FontName
+import klite.base64Encode
+import klite.nodes.Node
 import org.junit.jupiter.api.Test
 import java.io.ByteArrayInputStream
-import java.io.ByteArrayOutputStream
+import java.net.URI
 
+@Suppress("DEPRECATION")
 class PDFExtractorTest {
-  val response = AIClient.Response("r1", "success", "test-model", """{"result": "test"}""")
-  val aiClient = mockk<AIClient>(relaxed = true) {
-    every { query(any()) } returns response
-  }
-  val extractor = PDFExtractor(DataExtractor(aiClient))
+  @Test fun `whole pdf content is sent to the ai client as a data url`() {
+    val pdf = byteArrayOf(1, 2, 3)
+    val aiClient = RecordingAIClient()
 
-  @Test fun `extract text from simple PDF`() {
-    val pdfBytes = createPdf("Invoice 123\nAmount: 100.00 EUR\nDate: 2025-01-15")
-    val text = extractor.extractText(ByteArrayInputStream(pdfBytes))
+    val invoice = PDFExtractor(DataExtractor(aiClient))
+      .extractData<Invoice>(ByteArrayInputStream(pdf), extraPrompt = "The currency is always EUR")
 
-    expect(text).toContain("Invoice 123")
-      .toContain("Amount: 100.00 EUR")
-      .toContain("Date: 2025-01-15")
+    expect(invoice.number).toEqual("123")
+    expect(aiClient.files.single()).toEqual(URI("data:application/pdf;base64,${pdf.base64Encode()}"))
+    expect(aiClient.input).toContain("The currency is always EUR")
   }
 
-  @Test fun `extract text from empty PDF`() {
-    val pdfBytes = createPdf("")
-    val text = extractor.extractText(ByteArrayInputStream(pdfBytes))
+  data class Invoice(val number: String)
+}
 
-    expect(text.isBlank()).toEqual(true)
+private class RecordingAIClient(private val text: String = """{"number": "123"}""") : AIClient {
+  lateinit var input: String
+  var files: List<URI> = emptyList()
+
+  override fun query(input: String, vararg fileUrl: URI, prevResponseId: String?, params: Node): AIClient.Response {
+    this.input = input
+    files = fileUrl.toList()
+    return AIClient.Response("r1", "success", "test-model", text)
   }
 
-  @Test fun `extract text from multi-page PDF`() {
-    val doc = PDDocument()
-    doc.addPage(PDPage(PDRectangle.A4))
-    doc.addPage(PDPage(PDRectangle.A4))
-
-    PDPageContentStream(doc, doc.getPage(0)).use {
-      it.beginText()
-      it.setFont(PDType1Font(FontName.HELVETICA), 12f)
-      it.newLineAtOffset(50f, 700f)
-      it.showText("Page 1 content")
-      it.endText()
-    }
-
-    PDPageContentStream(doc, doc.getPage(1)).use {
-      it.beginText()
-      it.setFont(PDType1Font(FontName.HELVETICA), 12f)
-      it.newLineAtOffset(50f, 700f)
-      it.showText("Page 2 content")
-      it.endText()
-    }
-
-    val out = ByteArrayOutputStream()
-    doc.save(out)
-    doc.close()
-
-    val text = extractor.extractText(ByteArrayInputStream(out.toByteArray()))
-
-    expect(text).toContain("Page 1 content")
-    expect(text).toContain("Page 2 content")
-  }
-
-  @Test fun `stripMarkdown removes code fences`() {
-    every { aiClient.query(any()) } returns response.copy(text = "```json\n{\"key\": \"value\"}\n```")
-    val pdfBytes = createPdf("test")
-    val data = extractor.extractData<TestClass>(ByteArrayInputStream(pdfBytes))
-    expect(data.key).toEqual("value")
-  }
-
-  @Test fun `extractData retries on failure`() {
-    var attempts = 0
-    every { aiClient.query(any()) } answers {
-      attempts++
-      if (attempts < 3) throw RuntimeException("API error")
-      response.copy(text = """{"key": "recovered"}""")
-    }
-    val pdfBytes = createPdf("test")
-    val data = extractor.extractData<TestClass>(ByteArrayInputStream(pdfBytes))
-    expect(data.key).toEqual("recovered")
-    expect(attempts).toEqual(3)
-  }
-
-  private fun createPdf(text: String): ByteArray {
-    val doc = PDDocument()
-    doc.addPage(PDPage(PDRectangle.A4))
-    PDPageContentStream(doc, doc.getPage(0)).use {
-      it.beginText()
-      it.setFont(PDType1Font(FontName.HELVETICA), 12f)
-      it.newLineAtOffset(50f, 700f)
-      for (line in text.split("\n")) {
-        it.showText(line)
-        it.newLineAtOffset(0f, -20f)
-      }
-      it.endText()
-    }
-    val out = ByteArrayOutputStream()
-    doc.save(out)
-    doc.close()
-    return out.toByteArray()
-  }
-
-  data class TestClass(val key: String)
+  override fun stream(input: String, vararg fileUrl: URI, params: Node): Sequence<String> = emptySequence()
 }

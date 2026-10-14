@@ -1,6 +1,6 @@
 # klite-ai
 
-Experimental AI client integrations and PDF data extraction.
+Experimental AI client integrations and structured data extraction.
 
 ## Configuration
 
@@ -34,34 +34,32 @@ Register the client you want to use:
 register<AIClient>(OpenAIClient::class) // or GeminiClient::class
 ```
 
-### PDFExtractor
+### DataExtractor
 
-Extracts text from PDFs and uses an AI client to parse structured data:
+Extracts structured data from text, images or documents (e.g. PDFs) using an AI client:
 
 ```kotlin
-val extractor = PDFExtractor(OpenAIClient(httpClient))
+val extractor = DataExtractor(OpenAIClient(httpClient))
 
-// Extract raw text
-val text = extractor.extractText(pdfInputStream)
-
-// Extract structured data into a data class
 data class Invoice(val number: String, val amount: String, val date: String)
 
-val invoice = extractor.extractData<Invoice>(pdfInputStream)
+// Files can be local or remote, the whole content is sent to the AI client
+val invoice = extractor.extract<Invoice>("Extract the invoice", File("invoice.pdf").toURI())
 
 // With pre-filled fields (excluded from AI prompt)
-val invoice = extractor.extractData<Invoice>(pdfInputStream,
-  mapOf(Invoice::id to myId, Invoice::partnerId to partnerId))
+val invoice = extractor.extract<Invoice>("", pdfFile.toURI(),
+  provided = mapOf(Invoice::id to myId, Invoice::partnerId to partnerId))
 
 // With extra prompt instructions
-val invoice = extractor.extractData<Invoice>(pdfInputStream, extraPrompt = "The currency is always EUR")
+val invoice = extractor.extract<Invoice>("The currency is always EUR", pdfFile.toURI())
 ```
 
-The `extractData` method:
-1. Extracts text from the PDF using PDFBox
-2. Sends the text to the AI client with a prompt describing the expected JSON structure, which is derived from the provided data class
-3. Parses the AI response into the target data class
-4. Retries up to 3 times on failure (except 429 Too Many Requests)
+The `extract` method:
+1. Sends the text and the whole content of any given files to the AI client with a prompt describing the expected JSON structure, which is derived from the provided data class
+2. Parses the AI response into the target data class
+3. Retries up to 3 times on failure (except 429 Too Many Requests)
+
+`PDFExtractor` is deprecated: it no longer extracts text locally with PDFBox (which is not a dependency anymore), but simply forwards the whole file to `DataExtractor`, so use `DataExtractor` directly.
 
 ## MCP Server
 
