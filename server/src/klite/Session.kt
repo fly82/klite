@@ -25,12 +25,12 @@ class Session(
     Converter.from(v.toString(), type)
   }
 
-  inline operator fun <reified T> get(key: String): T? = get(key, typeOf<T>())
-
   operator fun set(key: String, value: Comparable<*>?) = params.put(key, value).also { changed = true }
 
   fun clear() = params.clear().also { changed = true; isNew = true }
 }
+
+inline operator fun <reified T> Session.get(key: String): T? = get(key, typeOf<T>())
 
 interface SessionStore {
   fun load(exchange: HttpExchange): Session

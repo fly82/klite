@@ -6,6 +6,7 @@ import ch.tutteli.atrium.api.verbs.expect
 import com.sun.net.httpserver.Headers
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.verify
 import org.junit.jupiter.api.Test
 import kotlin.reflect.typeOf
 
@@ -42,6 +43,22 @@ class SessionTest {
     // the same, when the type is only known as a KType, e.g. from an annotated route parameter
     expect(session.get<TSID<Any>>("small", typeOf<TSID<Any>>())).toEqual(TSID<Any>(1234L))
     expect(session.get<String>("s", typeOf<String>())).toEqual("text")
+  }
+
+  @Test fun `can be mocked`() {
+    val session = mockk<Session>(relaxed = true)
+    every { session["userId"] } returns "123"
+    expect(session["userId"]).toEqual("123")
+    session["userId"] = "456"
+    verify { session["userId"] = "456" }
+    session.clear()
+    verify { session.clear() }
+  }
+
+  @Test fun `session of a mocked exchange can be mocked`() {
+    val exchange = mockk<HttpExchange>(relaxed = true)
+    every { exchange.session["userId"] } returns "123"
+    expect(exchange.session["userId"]).toEqual("123")
   }
 
   @Test fun `stores session in the cookie and loads it back`() {
