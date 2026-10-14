@@ -2,6 +2,7 @@ package klite.ai
 
 import klite.Config
 import klite.MimeTypes
+import klite.base64Encode
 import klite.nodes.Node
 import java.net.URI
 import kotlin.time.Duration.Companion.seconds
@@ -17,7 +18,11 @@ interface AIClient {
   data class Response(val id: String?, val status: String, val model: String, val text: String)
 }
 
-internal val URI.isImage get() = when (scheme) {
-  "data" -> schemeSpecificPart.startsWith("image/")
-  else -> MimeTypes.typeFor(path ?: "").orEmpty().startsWith("image/")
+internal val URI.isImage get() = mimeType.orEmpty().startsWith("image/")
+
+internal val URI.mimeType: String? get() = when (scheme) {
+  "data" -> schemeSpecificPart.substringBefore(';').substringBefore(',').ifEmpty { null }
+  else -> MimeTypes.typeFor(path ?: "")
 }
+
+internal fun URI.inlineBase64() = if (scheme == "data") schemeSpecificPart.substringAfter(',') else toURL().readBytes().base64Encode()

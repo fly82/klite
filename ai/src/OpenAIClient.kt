@@ -59,7 +59,7 @@ internal fun URI.toOpenAIContent(): OpenAIClient.Content = when {
 }
 
 private val URI.fileName: String? get() = when (scheme) {
-  "data" -> "file." + schemeSpecificPart.substringAfter('/', "bin").substringBefore(';').ifEmpty { "bin" }
+  "data" -> "file." + (mimeType?.substringAfter('/') ?: "bin")
   else -> path?.substringAfterLast('/')?.takeIf { it.isNotEmpty() }
 }
 

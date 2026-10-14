@@ -1,9 +1,7 @@
 package klite.ai
 
 import klite.Config
-import klite.MimeTypes
 import klite.SnakeCase
-import klite.base64Encode
 import klite.http.timeout
 import klite.json.JsonHttpClient
 import klite.json.JsonMapper
@@ -35,9 +33,7 @@ open class GeminiClient(
 
   private fun toInput(input: String, fileUrl: Array<out URI>): Any = if (fileUrl.isNotEmpty()) listOf(
     Content("text", input)
-  ) + fileUrl.map {
-    Content(if (it.isImage) "image" else "document", data = it.toURL().readBytes().base64Encode(), mimeType = MimeTypes.typeFor(it.path))
-  } else input
+  ) + fileUrl.map { it.toGeminiContent() } else input
 
   fun query(input: Any /* String | List<Content | Step> */, params: Node = emptyMap(), prevInteractionId: String? = null): Response =
     http.post("/interactions?key=$apiKey", mapOf(
@@ -54,3 +50,6 @@ open class GeminiClient(
     fun toTextResponse() = AIClient.Response(id, status, model, steps.first { it.content != null }.content!!.first().text!!)
   }
 }
+
+internal fun URI.toGeminiContent() =
+  GeminiClient.Content(if (isImage) "image" else "document", data = inlineBase64(), mimeType = mimeType)
