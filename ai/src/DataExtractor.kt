@@ -30,16 +30,13 @@ class DataExtractor(
         val jsonStr = response.text.stripMarkdown()
         return json.parse(jsonStr, type)
       } catch (e: Exception) {
-        if (e.isClientError || it == numAttempts - 1) throw e
+        if ((e as? HttpException)?.statusCode?.isClientError == true || it == numAttempts - 1) throw e
         log.warn("Failed to extract $type, retrying: $e")
         prompt = (if (response?.id != null) "" else prompt) + "\nTry again, got $e"
       }
     }
     error("Failed to extract $type after $numAttempts attempts")
   }
-
-  // 4xx errors (e.g. 400 malformed request or 429 rate limit) won't go away by retrying: https://platform.openai.com/docs/guides/error-codes
-  private val Exception.isClientError get() = (this as? HttpException)?.statusCode?.value?.let { it in 400..499 } ?: false
 
   private fun String.stripMarkdown() = substringAfter("```json").substringBeforeLast("```")
 }

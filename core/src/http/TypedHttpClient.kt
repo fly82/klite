@@ -1,7 +1,6 @@
 package klite.http
 
 import klite.*
-import klite.StatusCode.Companion.TooManyRequests
 import klite.sse.Event
 import klite.sse.parseSSE
 import java.io.IOException
@@ -75,7 +74,7 @@ open class TypedHttpClient(
       try {
         return requestJson(urlSuffix, type, payload, modifier)
       } catch (e: IOException) {
-        if (i < retryCount && (e as? HttpException)?.statusCode != TooManyRequests) {
+        if (i < retryCount && (e as? HttpException)?.statusCode?.isClientError != true) {
           logger.error("Failed $urlSuffix, retry ${i + 1} after $retryAfter", e)
           sleep(retryAfter)
         } else {

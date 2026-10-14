@@ -49,5 +49,7 @@ package klite
   val reason get() = reasons[this]
   val bodyAllowed get() = this != NoContent && this != NotModified
   val isError get() = value >= BadRequest.value
+  /** 4xx means the request itself is wrong (malformed, unauthorized, rate limited), so retrying it won't help */
+  val isClientError get() = value in BadRequest.value until InternalServerError.value
   override fun toString() = value.toString()
 }
