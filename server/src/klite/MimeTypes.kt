@@ -53,7 +53,7 @@ object MimeTypes {
     "webmanifest" to "application/manifest+json"
   )
 
-  fun typeFor(file: Path) = byExtension[file.extension]
+  fun typeFor(file: Path) = byExtension[file.extension.lowercase()]
   fun typeFor(fileName: String) = typeFor(Path.of(fileName))
 
   fun isText(contentType: String) = contentType.startsWith("text/") || contentType.contains("json") || contentType.contains("xml") || contentType.contains("csv") || contentType == wwwForm
