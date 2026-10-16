@@ -25,6 +25,7 @@
 * ai/core: DataExtractor/TypedHttpClient no longer retries on 4xx errors (malformed requests, auth, rate limits), only on transient failures
 * smtp: module was renamed to *email*, update references
 * email: EmailContent.bodyHtml support added
+* email: `headers` in EmailContent or `send()` to add arbitrary message headers (e.g. In-Reply-To to thread a reply)
 * email: ImapEmailReader introduced for reading incoming mail over IMAP
 * xml: expose `secureDocumentBuilderFactory` and `secureXMLInputFactory` for use in other modules
 * xml: `XmlParser` can now produce `@XmlPath`-annotated objects from DOM trees

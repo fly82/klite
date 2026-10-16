@@ -45,6 +45,16 @@ class SmtpEmailSenderTest {
     expect(message.captured.content).toEqual("<Body>")
   }
 
+  @Test fun `send with headers`() = runTest {
+    val content = EmailContent("en", "hello", headers = mapOf("In-Reply-To" to "<1@example.com>", "References" to "<1@example.com>"))
+    sender.send(email, content)
+    val message = slot<MimeMessage>()
+    val toAddress = InternetAddress(email.value)
+    verify { session.getTransport(toAddress).sendMessage(capture(message), arrayOf(toAddress)) }
+    expect(message.captured.getHeader("In-Reply-To")[0]).toEqual("<1@example.com>")
+    expect(message.captured.getHeader("References")[0]).toEqual("<1@example.com>")
+  }
+
   @Test fun `send with attachment`() = runTest {
     sender.send(email, subject = "Subject", body = "Body", attachments = mapOf("hello.pdf" to ByteArray(0)))
     val message = slot<MimeMessage>()

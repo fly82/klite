@@ -31,8 +31,9 @@ open class SmtpEmailSender(
   private val log = logger()
 
   override fun send(to: Email, subject: String, body: String, bodyMimeType: String, attachments: Map<String, ByteArray>,
-                    cc: List<Email>, bcc: List<Email>, from: Named?) {
+                    cc: List<Email>, bcc: List<Email>, from: Named?, headers: Map<String, String>) {
     send(to, subject, from ?: defaultFrom) {
+      headers.forEach { setHeader(it.key, it.value) }
       cc.forEach { setRecipient(CC, InternetAddress(it.value)) }
       bcc.forEach { setRecipient(BCC, InternetAddress(it.value)) }
       if (attachments.isEmpty())

@@ -16,21 +16,22 @@ fun Address.toNamed() = (this as InternetAddress).let { Named(Email(it.address),
 
 interface EmailSender {
   fun send(to: Email, subject: String, body: String, bodyMimeType: String = MimeTypes.text, attachments: Map<String, ByteArray> = emptyMap(),
-           cc: List<Email> = emptyList(), bcc: List<Email> = emptyList(), from: Named? = null)
+           cc: List<Email> = emptyList(), bcc: List<Email> = emptyList(), from: Named? = null, headers: Map<String, String> = emptyMap())
 
   fun send(to: Email, content: EmailContent, attachments: Map<String, ByteArray> = emptyMap(), cc: List<Email> = emptyList(), bcc: List<Email> = emptyList()) =
-    send(to, content.subject, content.fullHtml(), MimeTypes.html, attachments, cc, bcc, content.from)
+    send(to, content.subject, content.fullHtml(), MimeTypes.html, attachments, cc, bcc, content.from, content.headers)
 }
 
 open class FakeEmailSender: EmailSender {
   private val log = logger()
   lateinit var lastSentEmail: String
 
-  override fun send(to: Email, subject: String, body: String, bodyMimeType: String, attachments: Map<String, ByteArray>, cc: List<Email>, bcc: List<Email>, from: Named?) {
+  override fun send(to: Email, subject: String, body: String, bodyMimeType: String, attachments: Map<String, ByteArray>, cc: List<Email>, bcc: List<Email>, from: Named?, headers: Map<String, String>) {
     lastSentEmail = """
       Email to $to, CC: $cc, BCC: $bcc
       Subject: $subject
       Body ($bodyMimeType): $body
+      ${if (headers.isNotEmpty()) "Headers: $headers" else ""}
       ${if (attachments.isNotEmpty()) "Attachments: ${attachments.keys}" else ""}
     """
     log.info(lastSentEmail)

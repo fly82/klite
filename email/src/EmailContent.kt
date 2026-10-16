@@ -8,7 +8,8 @@ import org.intellij.lang.annotations.Language
 import java.net.URI
 import java.util.*
 
-open class EmailContent(val lang: String, val labelKey: String, val substitutions: Map<String, String> = emptyMap(), val actionUrl: URI? = null) {
+open class EmailContent(val lang: String, val labelKey: String, val substitutions: Map<String, String> = emptyMap(),
+                        val actionUrl: URI? = null, val headers: Map<String, String> = emptyMap()) {
   companion object {
     var logoUrl: URI? = null
     var bgCssColor = "rgb(243, 244, 246)"
@@ -21,9 +22,9 @@ open class EmailContent(val lang: String, val labelKey: String, val substitution
   open val actionLabel get() = translateOrNull(lang, "emails.$labelKey.action", substitutions)
   open val from: Named? get() = null
 
-  override fun equals(other: Any?) = other is EmailContent && javaClass == other.javaClass && lang == other.lang && labelKey == other.labelKey && substitutions == other.substitutions && actionUrl == other.actionUrl
-  override fun hashCode() = Objects.hash(lang, labelKey, substitutions, actionUrl)
-  override fun toString() = "${this::class.simpleName}($lang, $labelKey, $substitutions, $actionUrl)"
+  override fun equals(other: Any?) = other is EmailContent && javaClass == other.javaClass && lang == other.lang && labelKey == other.labelKey && substitutions == other.substitutions && actionUrl == other.actionUrl && headers == other.headers
+  override fun hashCode() = Objects.hash(lang, labelKey, substitutions, actionUrl, headers)
+  override fun toString() = "${this::class.simpleName}($lang, $labelKey, $substitutions, $actionUrl, $headers)"
 
   @Language("html")
   open fun fullHtml() = """
