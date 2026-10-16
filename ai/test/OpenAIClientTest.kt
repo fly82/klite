@@ -6,25 +6,30 @@ import klite.SnakeCase
 import klite.base64Encode
 import klite.json.JsonMapper
 import klite.json.parse
+import klite.nodes.Node
 import org.junit.jupiter.api.Test
 import java.io.File
 import java.net.URI
 import java.time.Instant
 
 class OpenAIClientTest {
-  @Test fun `usage is parsed from response json`() {
-    val json = """{"input_tokens":1152,"input_tokens_details":{"cache_write_tokens":1149,"cached_tokens":0},
+  @Test fun `usage is passed to the text response`() {
+    val json = """{"input_tokens":1152,"input_tokens_details":{"cache_write_tokens":1149,"cached_tokens":5},
       "output_tokens":251,"output_tokens_details":{"reasoning_tokens":146},"total_tokens":1403}"""
+    val usage = JsonMapper(keys = SnakeCase).parse<Node>(json)
+    val output = OpenAIClient.Output("o1", "message", listOf(OpenAIClient.Content("output_text", "hi")))
+    val response = OpenAIClient.Response("r1", Instant.now(), "completed", "gpt-5", listOf(output), usage)
 
-    expect(JsonMapper(keys = SnakeCase).parse<AIClient.Usage>(json))
-      .toEqual(AIClient.Usage(inputTokens = 1152, outputTokens = 251))
+    expect(response.toTextResponse())
+      .toEqual(AIClient.Response("r1", "completed", "gpt-5", "hi", AIClient.TokenUsage("gpt-5", 1152, 251, 5, 146)))
   }
 
-  @Test fun `usage is passed to the text response`() {
+  @Test fun `usage without token details defaults them to zero`() {
+    val usage = JsonMapper(keys = SnakeCase).parse<Node>("""{"input_tokens":10,"output_tokens":20}""")
     val output = OpenAIClient.Output("o1", "message", listOf(OpenAIClient.Content("output_text", "hi")))
-    val response = OpenAIClient.Response("r1", Instant.now(), "completed", "gpt-5", listOf(output), AIClient.Usage(1152, 251))
+    val response = OpenAIClient.Response("r1", Instant.now(), "completed", "gpt-5", listOf(output), usage)
 
-    expect(response.toTextResponse()).toEqual(AIClient.Response("r1", "completed", "gpt-5", "hi", AIClient.Usage(1152, 251, "gpt-5")))
+    expect(response.toTextResponse().usage).toEqual(AIClient.TokenUsage("gpt-5", 10, 20))
   }
 
   @Test fun `text response has no usage when it is absent`() {

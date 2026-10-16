@@ -20,6 +20,7 @@
 * oauth: reject logins if we get `email_verified=false` from the provider, to avoid unverified emails in the system
 * i18n: added `Lang.translateOrNull()`
 * ai: AIClient can now accept multiple image or document files as an input
+* ai: AIClient.Response now includes TokenUsage
 * ai: PDFExtractor is deprecated, it now sends the whole file to DataExtractor instead of extracting text with PDFBox (some PDFs are image-based)
 * ai/core: DataExtractor/TypedHttpClient no longer retries on 4xx errors (malformed requests, auth, rate limits), only on transient failures
 * smtp: module was renamed to *email*, update references

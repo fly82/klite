@@ -3,11 +3,11 @@ package klite.ai
 import klite.Config
 import klite.SnakeCase
 import klite.ValueConverter
+import klite.ai.AIClient.TokenUsage
 import klite.http.timeout
 import klite.json.JsonHttpClient
 import klite.json.JsonMapper
-import klite.nodes.Node
-import klite.nodes.text
+import klite.nodes.*
 import klite.toBase64Url
 import java.io.File
 import java.net.URI
@@ -47,8 +47,12 @@ open class OpenAIClient(
   data class Output(val id: String, val type: String, val content: List<Content> = emptyList(), val role: String? = null)
   data class Content(val type: String, val text: String? = null, val imageUrl: URI? = null, val fileUrl: URI? = null,
                      val fileData: URI? = null, val filename: String? = null, val detail: String? = null)
-  data class Response(val id: String, val createdAt: Instant, val status: String, val model: String, val output: List<Output>, val usage: AIClient.Usage? = null) {
-    fun toTextResponse() = AIClient.Response(id, status, model, output.first { it.type == "message" }.content.first().text!!, usage?.copy(model = model))
+  data class Response(val id: String, val createdAt: Instant, val status: String, val model: String, val output: List<Output>, val usage: Node? = null) {
+    fun toTextResponse() = AIClient.Response(id, status, model, output.first { it.type == "message" }.content.first().text!!, usage?.let {
+      TokenUsage(model, it.child("inputTokens"), it.child("outputTokens"),
+        it.atOrNull("inputTokensDetails")?.childOrNull<Int>("cachedTokens") ?: 0,
+        it.atOrNull("outputTokensDetails")?.childOrNull<Int>("reasoningTokens") ?: 0)
+    })
   }
 }
 
