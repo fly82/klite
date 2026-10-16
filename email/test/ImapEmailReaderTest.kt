@@ -79,6 +79,24 @@ class ImapEmailReaderTest {
     expect(email.attachments["hello.pdf"]!!.decodeToString()).toEqual("PDF content")
   }
 
+  @Test fun `parses attachments with duplicate names using numeric suffixes`() {
+    val email = message {
+      setContent(MimeMultipart().apply {
+        listOf("First", "Second", "Third").forEach {
+          addBodyPart(MimeBodyPart().apply {
+            setContent(it.toByteArray(), "application/pdf")
+            fileName = "hello.pdf"
+            disposition = Part.ATTACHMENT
+          })
+        }
+      })
+    }.toEmailMessage()
+
+    expect(email.attachments.keys).toContainExactly("hello.pdf", "hello-1.pdf", "hello-2.pdf")
+    expect(email.attachments["hello-1.pdf"]!!.decodeToString()).toEqual("Second")
+    expect(email.attachments["hello-2.pdf"]!!.decodeToString()).toEqual("Third")
+  }
+
   @Test fun `parses cc recipients and message id`() {
     val email = message {
       setFrom(InternetAddress("from@example.com"))

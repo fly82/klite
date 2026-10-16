@@ -49,10 +49,20 @@ private fun Part.collectBody(text: StringBuilder, html: StringBuilder, attachmen
       val content = content as Multipart
       for (i in 0 until content.count) content.getBodyPart(i).collectBody(text, html, attachments)
     }
-    fileName != null || disposition == Part.ATTACHMENT -> attachments[fileName ?: "attachment"] = readBytes()
+    fileName != null || disposition == Part.ATTACHMENT -> attachments.add(fileName ?: "attachment", readBytes())
     isMimeType("text/html") -> html.append(contentAsString())
     isMimeType("text/*") -> text.append(contentAsString())
   }
+}
+
+private fun MutableMap<String, ByteArray>.add(name: String, content: ByteArray) {
+  val extensionAt = name.lastIndexOf('.').takeIf { it > 0 }
+  val base = if (extensionAt == null) name else name.substring(0, extensionAt)
+  val extension = if (extensionAt == null) "" else name.substring(extensionAt)
+  var uniqueName = name
+  var i = 0
+  while (containsKey(uniqueName)) uniqueName = "$base-${++i}$extension"
+  this[uniqueName] = content
 }
 
 private fun Part.contentAsString() = content.let { if (it is String) it else readBytes().toString(Charsets.UTF_8) }
