@@ -12,7 +12,7 @@
 * server: `clear()` now sets `Session.isNew` back to true
 * server: CookieSessionStore now expires the cookie when the session becomes empty, so logout removes it
 * server: slightly faster request routing
-* server: `Server.httpExchangeCreator` is now a lambda for better performance (small code change needed)
+* server: `Server.httpExchangeCreator` is now a lambda for better performance (change to `Server(httpExchangeCreator = ::XForwardedHttpExchange)` if needed)
 * server: `urlEncode()` is now path-safe (avoids +, uses %20 instead)
 * server: `CorsHandler.allowedCredentials` now defaults to false unless specific `allowedOrigins` are provided, to avoid sending cookies to all origins
 * server: `HttpExchange.query` now returns still encoded string value that can be safely appended to redirected URLs
