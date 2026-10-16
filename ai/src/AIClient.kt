@@ -15,7 +15,8 @@ interface AIClient {
 
   fun stream(input: String, vararg fileUrl: URI, params: Node = emptyMap()): Sequence<String>
 
-  data class Response(val id: String?, val status: String, val model: String, val text: String)
+  data class Response(val id: String?, val status: String, val model: String, val text: String, val usage: Usage? = null)
+  data class Usage(val inputTokens: Int, val outputTokens: Int, val model: String = "")
 }
 
 internal val URI.isImage get() = mimeType.orEmpty().startsWith("image/")
