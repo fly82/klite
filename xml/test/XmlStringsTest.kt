@@ -4,7 +4,9 @@ import ch.tutteli.atrium.api.fluent.en_GB.toEqual
 import ch.tutteli.atrium.api.fluent.en_GB.toThrow
 import ch.tutteli.atrium.api.verbs.expect
 import org.intellij.lang.annotations.Language
+import org.junit.jupiter.api.Assertions.assertTimeout
 import org.junit.jupiter.api.Test
+import java.time.Duration
 
 class XmlStringsTest {
   @Test fun dropXmlHeader() {
@@ -56,5 +58,19 @@ class XmlStringsTest {
   @Test fun `a literal dot still matches a dotted tag name`() {
     @Language("xml") val xml = "<root><a.b>dot</a.b></root>"
     expect(xml.extractXmlTag("a.b")).toEqual("<a.b>dot</a.b>")
+  }
+
+  @Test fun `unterminated repeated tags are rejected without quadratic blowup`() {
+    val xml = "<root>" + "<content>text".repeat(20_000)
+    assertTimeout(Duration.ofSeconds(5)) {
+      expect { xml.extractXmlTag("content") }.toThrow<IllegalStateException>()
+    }
+  }
+
+  @Test fun `near-miss closings are rejected without quadratic blowup`() {
+    val xml = "<root>" + "<content>x</contentY>".repeat(20_000)
+    assertTimeout(Duration.ofSeconds(5)) {
+      expect { xml.extractXmlTag("content") }.toThrow<IllegalStateException>()
+    }
   }
 }
