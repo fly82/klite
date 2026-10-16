@@ -12,9 +12,7 @@ import klite.nodes.text
 import klite.nodes.value
 import org.intellij.lang.annotations.Language
 import org.junit.jupiter.api.Test
-import org.xml.sax.InputSource
-import java.io.StringReader
-import javax.xml.parsers.DocumentBuilderFactory
+import javax.xml.stream.XMLStreamException
 import kotlin.reflect.KType
 import org.w3c.dom.Document as DomDocument
 
@@ -63,9 +61,7 @@ class XmlParserTest {
       Identifier("123", "AGENCY1", "SEA", dangerousGoods = true))
   }
 
-  private fun dom(@Language("XML") xml: String): DomDocument =
-    DocumentBuilderFactory.newInstance().apply { isNamespaceAware = true }
-      .newDocumentBuilder().parse(InputSource(StringReader(xml)))
+  private fun dom(@Language("XML") xml: String): DomDocument = secureDocumentBuilderFactory().parse(xml)
 
   @Test fun parseFromDom() {
     expect(parser.parse<Identifier>(dom(xml))).toEqual(
@@ -87,6 +83,11 @@ class XmlParserTest {
   @Test fun namespaces() {
     expect(parser.parse<Identifier>(xmlWithNamespaces)).toEqual(
       Identifier("123", "AGENCY1", "SEA", dangerousGoods = true))
+  }
+
+  @Test fun `external entities are not resolved`() {
+    @Language("XML") val xxe = """<?xml version="1.0"?><!DOCTYPE foo [<!ENTITY xxe SYSTEM "file:///etc/passwd">]><transportMovement><id>&xxe;</id></transportMovement>"""
+    expect { parser.parse<Identifier>(xxe) }.toThrow<XMLStreamException>()
   }
 
   @Test fun parsePathMap() {

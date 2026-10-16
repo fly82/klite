@@ -10,6 +10,7 @@ import javax.xml.parsers.DocumentBuilderFactory
 fun secureDocumentBuilderFactory(block: DocumentBuilderFactory.() -> Unit = {}) = DocumentBuilderFactory.newInstance().apply {
   isNamespaceAware = true
   isXIncludeAware = false
+  setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true)
   setFeature("http://apache.org/xml/features/disallow-doctype-decl", true)
   setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD, "")
   setAttribute(XMLConstants.ACCESS_EXTERNAL_SCHEMA, "")
