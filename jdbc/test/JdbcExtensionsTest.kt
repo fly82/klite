@@ -29,16 +29,16 @@ class JdbcExtensionsTest {
 
   @Test fun insertExpr() {
     expect(db.insertExpr("table", values)).toEqual("insert into \"table\" (hello, nullable, array, emptyArray, date, json, decimal)" +
-      " values (?, ?, ?, '{}', current_date, ?::jsonb, ?::decimal)")
+      " values (?, ?, ?, ?, current_date, ?::jsonb, ?::decimal)")
     expect(otherDb.insertExpr("table", values)).toEqual("insert into \"table\" (hello, nullable, array, emptyArray, date, json, decimal)" +
-      " values (?, ?, ?, '{}', current_date, ?::jsonb, ?)")
+      " values (?, ?, ?, ?, current_date, ?::jsonb, ?)")
   }
 
   @Test fun setExpr() {
-    expect(db.setExpr(values)).toEqual("hello=?, nullable=?, array=?, emptyArray='{}', date=current_date, json=?::jsonb, decimal=?::decimal")
-    expect(db.setValues(values).toList()).toContainExactly("world", null, listOf(1, 2, 3), "{}", 1000.d)
-    expect(otherDb.setExpr(values)).toEqual("hello=?, nullable=?, array=?, emptyArray='{}', date=current_date, json=?::jsonb, decimal=?")
-    expect(otherDb.setValues(values).toList()).toContainExactly("world", null, listOf(1, 2, 3), "{}", 1000.d)
+    expect(db.setExpr(values)).toEqual("hello=?, nullable=?, array=?, emptyArray=?, date=current_date, json=?::jsonb, decimal=?::decimal")
+    expect(db.setValues(values).toList()).toContainExactly("world", null, listOf(1, 2, 3), values["emptyArray"], "{}", 1000.d)
+    expect(otherDb.setExpr(values)).toEqual("hello=?, nullable=?, array=?, emptyArray=?, date=current_date, json=?::jsonb, decimal=?")
+    expect(otherDb.setValues(values).toList()).toContainExactly("world", null, listOf(1, 2, 3), values["emptyArray"], "{}", 1000.d)
   }
 
   @Test fun whereExpr() {

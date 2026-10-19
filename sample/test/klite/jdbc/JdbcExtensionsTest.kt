@@ -88,6 +88,21 @@ open class JdbcExtensionsTest: TempTableDBTest() {
     expect(loaded).toEqual(data)
   }
 
+  @Test fun `batch with mixed empty and non-empty arrays`() {
+    val table = "array_values"
+    db.exec("create table $table(id uuid primary key, tags text[], owner_ids uuid[])")
+    val empty = mapOf("id" to randomUUID(), "tags" to emptyList<String>(), "owner_ids" to emptyList<UUID>())
+    val filled = mapOf("id" to randomUUID(), "tags" to listOf("a", "b"), "owner_ids" to listOf(randomUUID()))
+
+    expect(db.insertBatch(table, listOf(empty, filled)).toList()).toContainExactly(1, 1)
+    expect(db.upsertBatch(table, listOf(filled, empty)).toList()).toContainExactly(1, 1)
+
+    expect(db.select(table, filled["id"]) { (getArray("tags").array as Array<*>).toList() }).toContainExactly("a", "b")
+    expect(db.select(table, filled["id"]) { (getArray("owner_ids").array as Array<*>).toList() }).toHaveSize(1)
+    expect(db.select(table, empty["id"]) { (getArray("tags").array as Array<*>).toList() }).toBeEmpty()
+    expect(db.select(table, empty["id"]) { (getArray("owner_ids").array as Array<*>).toList() }).toBeEmpty()
+  }
+
   @Test fun `count with keyword table name`() {
     db.exec("""create table "limit"(id uuid primary key, hello varchar)""")
     db.insert("limit", mapOf("id" to randomUUID(), "hello" to "Hello"))

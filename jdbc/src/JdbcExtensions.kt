@@ -226,7 +226,6 @@ internal fun q(name: String) = if (name in namesToQuote) "\"$name\"" else name
 
 internal fun DB.placeholder(v: Any?) = when {
   v is SqlExpr -> v.expr
-  isEmptyCollection(v) -> emptyArray.expr
   v is Decimal -> if (isPostgres) "?::decimal" else "?"
   else -> "?"
 }
@@ -238,10 +237,11 @@ context(db: DB)
 internal fun Iterable<Any?>.flatValues() = flatMap { it.toIterable() }
 
 context(db: DB)
-private fun Any?.toIterable(): Iterable<Any?> = if (isEmptyCollection(this)) emptyList() else if (this is SqlExpr) values(db) else listOf(this)
+private fun Any?.toIterable(): Iterable<Any?> = if (this is SqlExpr) values(db) else listOf(this)
 
 operator fun PreparedStatement.set(i: Int, value: Any?) {
   if (value is InputStream) setBinaryStream(i, value)
+  else if (isEmptyCollection(value)) setObject(i, "{}", Types.OTHER)
   else setObject(i, JdbcConverter.to(value, connection))
 }
 

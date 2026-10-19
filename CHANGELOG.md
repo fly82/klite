@@ -1,3 +1,6 @@
+# Unreleased 2.1.1
+* jdbc: bind empty collections as an untyped `'{}'` parameter, so `insertBatch()`/`upsertBatch()` work when entities mix empty and non-empty array values
+
 # 2.1.0
 * core/http: simplify RequestModifier usage
 * json: `toJsonSchema()` now describes Map key/value types using propertyNames/additionalProperties
