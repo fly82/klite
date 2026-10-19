@@ -35,8 +35,8 @@ open class TSGenerator(
   open fun printFrom(dir: Path, routesRegex: Regex? = null) {
     dir.walk(INCLUDE_DIRECTORIES).filter { it.extension == "class" }.sorted().forEach {
       val className = dir.relativize(it).toString().removeSuffix(".class").replace(File.separatorChar, '.')
-      if (routesRegex?.containsMatchIn(className) == true) extractRouteTypes(className)
-      else printClass(className)
+      if (routesRegex == null) printClass(className)
+      else if (routesRegex.containsMatchIn(className)) extractRouteTypes(className)
     }
   }
 
