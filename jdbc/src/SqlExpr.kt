@@ -19,7 +19,7 @@ open class SqlOp(val operator: String, values: Iterable<*>): SqlExpr(operator, v
   constructor(operator: String, value: Any?): this(operator, listOf(value))
   constructor(operator: String): this(operator, emptyList<Any>())
   override fun expr(db: DB, key: String) = q(key) + " $operator" +
-    if ((values as? Collection)?.isEmpty() == true) "" else " " + db.placeholder(values.first())
+    if ((values as? Collection)?.isEmpty() == true) "" else " " + placeholder(values.first())
 }
 
 class NullOrOp(operator: String, value: Any?): SqlOp(operator, value) {

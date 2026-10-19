@@ -224,11 +224,7 @@ val KProperty1<*, *>.colName get() = colNameCache[this] ?: (findAnnotation<Colum
 
 internal fun q(name: String) = if (name in namesToQuote) "\"$name\"" else name
 
-internal fun DB.placeholder(v: Any?) = when {
-  v is SqlExpr -> v.expr
-  v is Decimal -> if (isPostgres) "?::decimal" else "?"
-  else -> "?"
-}
+internal fun placeholder(v: Any?) = if (v is SqlExpr) v.expr else "?"
 
 internal fun DB.setValues(values: ValueMap) = values.values.flatValues()
 internal fun DB.whereValues(where: Where) = where.mapNotNull { it.second }.flatValues()
@@ -241,6 +237,7 @@ private fun Any?.toIterable(): Iterable<Any?> = if (this is SqlExpr) values(db) 
 
 operator fun PreparedStatement.set(i: Int, value: Any?) {
   if (value is InputStream) setBinaryStream(i, value)
+  else if (value is Decimal) setObject(i, value.toString(), Types.OTHER)
   else if (isEmptyCollection(value)) setObject(i, "{}", Types.OTHER)
   else setObject(i, JdbcConverter.to(value, connection))
 }

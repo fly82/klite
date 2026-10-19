@@ -62,21 +62,20 @@ object JdbcConverter {
       cls.javaPrimitiveType != null || nativeTypes.contains(cls) -> v
       cls.isValue && cls.hasAnnotation<JvmInline>() -> v.unboxInline()
       Converter.supports(cls) -> v.toString()
-      v is Collection<*> -> conn!!.createArrayOf(arrayType(v.firstOrNull()?.javaClass), v.map { to(it, conn) }.toTypedArray())
+      v is Collection<*> -> conn!!.createArrayOf(v.firstOrNull()?.let { arrayType(it.javaClass) } ?: "varchar", v.map { to(it, conn) }.toTypedArray())
       v is Array<*> -> conn!!.createArrayOf(arrayType(v.javaClass.componentType), v.map { to(it, conn) }.toTypedArray())
       else -> v
     }
   }
 
-  private fun arrayType(c: Class<*>?): String = when {
-    c == null -> "varchar"
+  private fun arrayType(c: Class<*>): String = when {
     UUID::class.java.isAssignableFrom(c) || Uuid::class.java.isAssignableFrom(c) -> "uuid"
     Number::class.java.isAssignableFrom(c) || c.isPrimitive -> "numeric"
     LocalDate::class.java.isAssignableFrom(c) -> "date"
     LocalTime::class.java.isAssignableFrom(c) -> "time"
     LocalDateTime::class.java.isAssignableFrom(c) -> "timestamp"
     Instant::class.java.isAssignableFrom(c) || kotlin.time.Instant::class.java.isAssignableFrom(c) -> "timestamptz"
-    c.isAnnotationPresent(JvmInline::class.java) -> arrayType(c.declaredFields.find { it.modifiers and STATIC == 0 }?.type)
+    c.isAnnotationPresent(JvmInline::class.java) -> c.declaredFields.find { it.modifiers and STATIC == 0 }?.type?.let { arrayType(it) } ?: "varchar"
     else -> "varchar"
   }
 

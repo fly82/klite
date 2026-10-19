@@ -2,6 +2,7 @@ package klite.sample.klite.jdbc
 
 import ch.tutteli.atrium.api.fluent.en_GB.*
 import ch.tutteli.atrium.api.verbs.expect
+import klite.Decimal
 import klite.d
 import klite.jdbc.*
 import klite.nodes.Node
@@ -101,6 +102,17 @@ open class JdbcExtensionsTest: TempTableDBTest() {
     expect(db.select(table, filled["id"]) { (getArray("owner_ids").array as Array<*>).toList() }).toHaveSize(1)
     expect(db.select(table, empty["id"]) { (getArray("tags").array as Array<*>).toList() }).toBeEmpty()
     expect(db.select(table, empty["id"]) { (getArray("owner_ids").array as Array<*>).toList() }).toBeEmpty()
+  }
+
+  @Test fun `decimal column type is inferred from an untyped parameter`() {
+    val table = "decimal_values"
+    db.exec("create table $table(id uuid primary key, price numeric)")
+    val id = randomUUID()
+    db.insert(table, mapOf("id" to id, "price" to 12.5.d))
+    db.update(table, mapOf("price" to 13.d), "id" to id)
+    db.upsert(table, mapOf("id" to id, "price" to 14.d))
+
+    expect(db.select(table, "price" to 14.d) { get<Decimal>("price") }).toContainExactly(14.d)
   }
 
   @Test fun `count with keyword table name`() {
