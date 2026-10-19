@@ -30,23 +30,23 @@ class JdbcExtensionsTest {
   @Test fun insertExpr() {
     listOf(db, otherDb).forEach {
       expect(it.insertExpr("table", values)).toEqual("insert into \"table\" (hello, nullable, array, emptyArray, date, json, decimal)" +
-        " values (?, ?, ?, ?, current_date, ?::jsonb, ?)")
+        " values (?, ?, ?, ?, current_date, ?, ?)")
     }
   }
 
   @Test fun setExpr() {
     listOf(db, otherDb).forEach {
-      expect(it.setExpr(values)).toEqual("hello=?, nullable=?, array=?, emptyArray=?, date=current_date, json=?::jsonb, decimal=?")
-      expect(it.setValues(values).toList()).toContainExactly("world", null, listOf(1, 2, 3), values["emptyArray"], "{}", 1000.d)
+      expect(it.setExpr(values)).toEqual("hello=?, nullable=?, array=?, emptyArray=?, date=current_date, json=?, decimal=?")
+      expect(it.setValues(values).toList()).toContainExactly("world", null, listOf(1, 2, 3), values["emptyArray"], values["json"], 1000.d)
     }
   }
 
   @Test fun whereExpr() {
     val where = whereConvert(values.map { it.key to it.value }) + sql("exists (subselect)") + or("a" to "b", "array" any 123, "something" like "x%", "num" gte 1)
-    expect(db.whereExpr(where)).toEqual(" where hello=? and nullable is null and array = any(?) and emptyArray='{}' and date=current_date and json=?::jsonb and decimal=? and exists (subselect) and (a=? or ?=any(array) or something like ? or num >= ?)")
-    expect(db.whereValues(where).toList()).toEqual(listOf<Any?>("world", listOf(1, 2, 3), "{}", 1000.d, "b", 123, "x%", 1))
-    expect(otherDb.whereExpr(where)).toEqual(" where hello=? and nullable is null and array in (?, ?, ?) and emptyArray='{}' and date=current_date and json=?::jsonb and decimal=? and exists (subselect) and (a=? or ?=any(array) or something like ? or num >= ?)")
-    expect(otherDb.whereValues(where).toList()).toEqual(listOf<Any?>("world", 1, 2, 3, "{}", 1000.d, "b", 123, "x%", 1))
+    expect(db.whereExpr(where)).toEqual(" where hello=? and nullable is null and array = any(?) and emptyArray='{}' and date=current_date and json=? and decimal=? and exists (subselect) and (a=? or ?=any(array) or something like ? or num >= ?)")
+    expect(db.whereValues(where).toList()).toEqual(listOf<Any?>("world", listOf(1, 2, 3), values["json"], 1000.d, "b", 123, "x%", 1))
+    expect(otherDb.whereExpr(where)).toEqual(" where hello=? and nullable is null and array in (?, ?, ?) and emptyArray='{}' and date=current_date and json=? and decimal=? and exists (subselect) and (a=? or ?=any(array) or something like ? or num >= ?)")
+    expect(otherDb.whereValues(where).toList()).toEqual(listOf<Any?>("world", 1, 2, 3, values["json"], 1000.d, "b", 123, "x%", 1))
   }
 
   @Test fun directCollectionWherePair() {

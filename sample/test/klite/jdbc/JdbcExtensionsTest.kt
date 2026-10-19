@@ -115,6 +115,17 @@ open class JdbcExtensionsTest: TempTableDBTest() {
     expect(db.select(table, "price" to 14.d) { get<Decimal>("price") }).toContainExactly(14.d)
   }
 
+  @Test fun `json column type is inferred from an untyped parameter`() {
+    val table = "json_values"
+    db.exec("create table $table(id uuid primary key, data json, meta jsonb)")
+    val id = randomUUID()
+    db.insert(table, mapOf("id" to id, "data" to jsonb(mapOf("a" to "x")), "meta" to jsonb(mapOf("b" to "y"))))
+    db.upsert(table, mapOf("id" to id, "data" to jsonb(mapOf("a" to "x2")), "meta" to jsonb(mapOf("b" to "y2"))))
+
+    expect(db.select(table, "id" to id) { getJson<Map<String, String>>("data") }).toContainExactly(mapOf("a" to "x2"))
+    expect(db.select(table, "id" to id) { getJson<Map<String, String>>("meta") }).toContainExactly(mapOf("b" to "y2"))
+  }
+
   @Test fun `count with keyword table name`() {
     db.exec("""create table "limit"(id uuid primary key, hello varchar)""")
     db.insert("limit", mapOf("id" to randomUUID(), "hello" to "Hello"))

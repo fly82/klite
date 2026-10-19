@@ -15,7 +15,9 @@ var dbJsonMapper = JsonMapper(fieldsOnly = true, values = object: ValueConverter
   } else o
 })
 
-fun jsonb(value: String?) = SqlComputed("?::jsonb", value)
+@JvmInline value class JsonValue(val json: String) // already serialized, to be bound as an untyped parameter
+
+fun jsonb(value: String?) = value?.let { JsonValue(it) }
 fun jsonb(value: Any?) = jsonb(value?.let { dbJsonMapper.render(it) })
 
 fun <T> ResultSet.getJsonOrNull(column: String, type: KType): T? =

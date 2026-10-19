@@ -238,6 +238,7 @@ private fun Any?.toIterable(): Iterable<Any?> = if (this is SqlExpr) values(db) 
 operator fun PreparedStatement.set(i: Int, value: Any?) {
   if (value is InputStream) setBinaryStream(i, value)
   else if (value is Decimal) setObject(i, value.toString(), Types.OTHER)
+  else if (value is JsonValue) setObject(i, value.json, Types.OTHER)
   else if (isEmptyCollection(value)) setObject(i, "{}", Types.OTHER)
   else setObject(i, JdbcConverter.to(value, connection))
 }
