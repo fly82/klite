@@ -20,7 +20,13 @@ class DataExtractor(
   inline fun <reified T: Any> extract(text: String = "", vararg fileUrl: URI, provided: Map<KProperty1<*, *>, Any?> = emptyMap(), params: Node = emptyMap(), numAttempts: Int = 3): T =
     extract(text, typeOf<T>(), *fileUrl, provided = provided, params = params, numAttempts = numAttempts)
 
-  fun <T: Any> extract(text: String, type: KType, vararg fileUrl: URI, provided: Map<KProperty1<*, *>, Any?> = emptyMap(), params: Node = emptyMap(), numAttempts: Int = 3): T {
+  fun <T: Any> extract(text: String, type: KType, vararg fileUrl: URI, provided: Map<KProperty1<*, *>, Any?> = emptyMap(), params: Node = emptyMap(), numAttempts: Int = 3): T =
+    extractResponse<T>(text, type, *fileUrl, provided = provided, params = params, numAttempts = numAttempts).first
+
+  inline fun <reified T: Any> extractResponse(text: String, vararg fileUrl: URI, provided: Map<KProperty1<*, *>, Any?> = emptyMap(), params: Node = emptyMap(), numAttempts: Int = 3): Pair<T, AIClient.Response> =
+    extractResponse(text, typeOf<T>(), *fileUrl, provided = provided, params = params, numAttempts = numAttempts)
+
+  fun <T: Any> extractResponse(text: String, type: KType, vararg fileUrl: URI, provided: Map<KProperty1<*, *>, Any?> = emptyMap(), params: Node = emptyMap(), numAttempts: Int = 3): Pair<T, AIClient.Response> {
     val providedText = if (provided.isNotEmpty()) ", use these provided values: " + provided.entries.joinToString { "${it.key.name}=${it.value}" } else ""
     var prompt = "Extract $type data as plain json, schema ${type.toJsonSchema()}, skip 'id' and non-required fields if not available:\n$text\n$providedText"
     var response: AIClient.Response? = null
@@ -28,7 +34,7 @@ class DataExtractor(
       try {
         response = aiClient.query(prompt, *fileUrl, prevResponseId = response?.id, params = params)
         val jsonStr = response.text.stripMarkdown()
-        return json.parse(jsonStr, type)
+        return json.parse<T>(jsonStr, type) to response
       } catch (e: Exception) {
         if ((e as? HttpException)?.statusCode?.isClientError == true || it == numAttempts - 1) throw e
         log.warn("Failed to extract $type, retrying: $e")

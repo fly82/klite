@@ -2,6 +2,7 @@
 * jdbc: bind empty collections as an untyped `'{}'` parameter, so `insertBatch()`/`upsertBatch()` work when entities mix empty and non-empty array values
 * jdbc: `Decimal` values are also sent as untyped parameters, letting the database infer the column type, so generated SQL no longer contains `::decimal` casts
 * jdbc: `jsonb()` now returns `JsonValue` (serialized JSON bound as an untyped parameter) instead of ?::jsonb casts
+* ai: introduce `DataExtractor.extractResponse()` that also returns the RawResponse with `TokenUsage`
 * email: add Reply-To support for incoming emails
 
 # 2.1.0
