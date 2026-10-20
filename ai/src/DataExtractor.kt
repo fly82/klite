@@ -23,7 +23,7 @@ class DataExtractor(
   fun <T: Any> extract(text: String, type: KType, vararg fileUrl: URI, provided: Map<KProperty1<*, *>, Any?> = emptyMap(), params: Node = emptyMap(), numAttempts: Int = 3): T =
     extractResponse<T>(text, type, *fileUrl, provided = provided, params = params, numAttempts = numAttempts).first
 
-  inline fun <reified T: Any> extractResponse(text: String, vararg fileUrl: URI, provided: Map<KProperty1<*, *>, Any?> = emptyMap(), params: Node = emptyMap(), numAttempts: Int = 3): Pair<T, AIClient.Response> =
+  inline fun <reified T: Any> extractResponse(text: String = "", vararg fileUrl: URI, provided: Map<KProperty1<*, *>, Any?> = emptyMap(), params: Node = emptyMap(), numAttempts: Int = 3): Pair<T, AIClient.Response> =
     extractResponse(text, typeOf<T>(), *fileUrl, provided = provided, params = params, numAttempts = numAttempts)
 
   fun <T: Any> extractResponse(text: String, type: KType, vararg fileUrl: URI, provided: Map<KProperty1<*, *>, Any?> = emptyMap(), params: Node = emptyMap(), numAttempts: Int = 3): Pair<T, AIClient.Response> {
