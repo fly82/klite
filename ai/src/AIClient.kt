@@ -16,8 +16,8 @@ interface AIClient {
   fun stream(input: String, vararg fileUrl: URI, params: Node = emptyMap()): Sequence<String>
 
   data class Response(val id: String?, val status: String, val model: String, val text: String, val usage: TokenUsage? = null)
-  data class TokenUsage(val model: String, val input: Int, val output: Int, val cached: Int = 0, val thought: Int = 0) {
-    operator fun plus(other: TokenUsage) = TokenUsage(model, input + other.input, output + other.output, cached + other.cached, thought + other.thought)
+  data class TokenUsage(val model: String, val input: Int, val output: Int, val cached: Int = 0, val thought: Int = 0, val params: Node = emptyMap()) {
+    operator fun plus(other: TokenUsage) = TokenUsage(model, input + other.input, output + other.output, cached + other.cached, thought + other.thought, params + other.params)
   }
 }
 

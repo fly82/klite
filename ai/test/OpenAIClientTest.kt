@@ -20,7 +20,7 @@ class OpenAIClientTest {
     val output = OpenAIClient.Output("o1", "message", listOf(OpenAIClient.Content("output_text", "hi")))
     val response = OpenAIClient.Response("r1", Instant.now(), "completed", "gpt-5", listOf(output), usage)
 
-    expect(response.toTextResponse())
+    expect(response.toGenericResponse())
       .toEqual(AIClient.Response("r1", "completed", "gpt-5", "hi", AIClient.TokenUsage("gpt-5", 1152, 251, 5, 146)))
   }
 
@@ -29,14 +29,14 @@ class OpenAIClientTest {
     val output = OpenAIClient.Output("o1", "message", listOf(OpenAIClient.Content("output_text", "hi")))
     val response = OpenAIClient.Response("r1", Instant.now(), "completed", "gpt-5", listOf(output), usage)
 
-    expect(response.toTextResponse().usage).toEqual(AIClient.TokenUsage("gpt-5", 10, 20))
+    expect(response.toGenericResponse().usage).toEqual(AIClient.TokenUsage("gpt-5", 10, 20))
   }
 
   @Test fun `text response has no usage when it is absent`() {
     val output = OpenAIClient.Output("o1", "message", listOf(OpenAIClient.Content("output_text", "hi")))
     val response = OpenAIClient.Response("r1", Instant.now(), "completed", "gpt-5", listOf(output))
 
-    expect(response.toTextResponse().usage).toEqual(null)
+    expect(response.toGenericResponse().usage).toEqual(null)
   }
 
   @Test fun `remote document is referenced by url`() {

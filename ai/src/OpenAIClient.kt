@@ -28,7 +28,7 @@ open class OpenAIClient(
     maxLoggedLen = maxLoggedLen, reqModifier = { header("Authorization", auth).timeout(timeout) })
 
   override fun query(input: String, vararg fileUrl: URI, prevResponseId: String?, params: Node): AIClient.Response =
-    query(toInput(input, fileUrl), params, prevResponseId).toTextResponse()
+    query(toInput(input, fileUrl), params, prevResponseId).toGenericResponse(params)
 
   override fun stream(input: String, vararg fileUrl: URI, params: Node): Sequence<String> =
     http.postSSE<Node>("/responses", mapOf("model" to model, "input" to toInput(input, fileUrl), "stream" to true) + this.params + params).mapNotNull { node ->
@@ -48,10 +48,11 @@ open class OpenAIClient(
   data class Content(val type: String, val text: String? = null, val imageUrl: URI? = null, val fileUrl: URI? = null,
                      val fileData: URI? = null, val filename: String? = null, val detail: String? = null)
   data class Response(val id: String, val createdAt: Instant, val status: String, val model: String, val output: List<Output>, val usage: Node? = null) {
-    fun toTextResponse() = AIClient.Response(id, status, model, output.first { it.type == "message" }.content.first().text!!, usage?.let {
+    fun toGenericResponse(params: Node = emptyMap()) = AIClient.Response(id, status, model, output.first { it.type == "message" }.content.first().text!!, usage?.let {
       TokenUsage(model, it.child("inputTokens"), it.child("outputTokens"),
         it.atOrNull("inputTokensDetails")?.childOrNull<Int>("cachedTokens") ?: 0,
-        it.atOrNull("outputTokensDetails")?.childOrNull<Int>("reasoningTokens") ?: 0)
+        it.atOrNull("outputTokensDetails")?.childOrNull<Int>("reasoningTokens") ?: 0,
+        params)
     })
   }
 }
