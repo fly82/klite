@@ -110,6 +110,18 @@ class ImapEmailReaderTest {
     expect(email.id).toEqual("<id@example.com>")
   }
 
+  @Test fun `parses reply-to recipients`() {
+    val email = message {
+      setReplyTo(arrayOf(InternetAddress("reply@example.com", "Reply")))
+    }.toEmailMessage()
+
+    expect(email.replyTo).toEqual(Named(Email("reply@example.com"), "Reply"))
+  }
+
+  @Test fun `leaves reply-to empty when the email names none`() {
+    expect(message().toEmailMessage().replyTo).toEqual(null)
+  }
+
   @Test fun `fetchUnseen does not mark messages as read`() {
     val message = spyk(message())
     every { folder.search(any()) } returns arrayOf(message)

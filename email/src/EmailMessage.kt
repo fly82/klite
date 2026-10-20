@@ -19,6 +19,7 @@ data class EmailMessage(
   val html: String? = null,
   val attachments: Map<String, ByteArray> = emptyMap(),
   val id: String?,
+  val replyTo: Named? = null,
 )
 
 fun Message.toEmailMessage(): EmailMessage {
@@ -36,6 +37,7 @@ fun Message.toEmailMessage(): EmailMessage {
     html.toString().takeIf { it.isNotEmpty() },
     attachments,
     getHeader("Message-ID")?.firstOrNull(),
+    if (getHeader("Reply-To") == null) null else getReplyTo()?.firstOrNull()?.toNamed(),
   )
 }
 
