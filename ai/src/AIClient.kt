@@ -2,6 +2,7 @@ package klite.ai
 
 import klite.Config
 import klite.MimeTypes
+import klite.ai.AIClient.TokenUsage
 import klite.base64Encode
 import klite.nodes.Node
 import java.net.URI
@@ -20,6 +21,8 @@ interface AIClient {
     operator fun plus(other: TokenUsage) = TokenUsage(model, input + other.input, output + other.output, cached + other.cached, thought + other.thought, params + other.params)
   }
 }
+
+operator fun TokenUsage?.plus(other: TokenUsage?): TokenUsage? = if (this == null) other else other?.let { this + it } ?: this
 
 internal val URI.isImage get() = mimeType.orEmpty().startsWith("image/")
 
